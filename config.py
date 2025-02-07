@@ -44,6 +44,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--turn-speed",
+        type=float,
+        default=np.pi/2,
+        help="maximum robot turning speed"
+    )
+
+    parser.add_argument(
         "--differential",
         action='store_true',
         default=False,
@@ -174,17 +181,45 @@ def get_args():
 
     # MPC configuration
     parser.add_argument(
-        "--num-linear",
+        "--num-directions",
         type=int,
         default=12,
         help="number of general direction rollouts for MPC"
     )
 
     parser.add_argument(
+        "--num-linear",
+        type=int,
+        default=10,
+        help="number of linear velocity levels for MPC"
+    )
+
+    parser.add_argument(
         "--num-angular",
         type=int,
-        default=12,
-        help="number of general direction rollouts for MPC"
+        default=10,
+        help="number of angular velocity levels for MPC"
+    )
+
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.9,
+        help="discount factor for cost estimation"
+    )
+
+    parser.add_argument(
+        "--dist-weight",
+        type=float,
+        default=0.65,
+        help="weight for the distance cost term"
+    )
+
+    parser.add_argument(
+        "--goal-weight",
+        type=float,
+        default=0.35,
+        help="weight for the goal cost term"
     )
 
     # device configuration

@@ -95,7 +95,7 @@ class PedNoPredMPC(BaseMPC):
 
         self.rollout_costs = np.zeros(self.num_rollouts, dtype=np.float32)
         min_dist_weight = mpc_weight
-        end_dist_weight = 1 - min_dist_weight
+        end_dist_weight = 1 - min_dist_weight # currently only 2 cost terms
 
         for i in range(self.num_rollouts):
             # Calculate the distance between the rollouts and predictions
