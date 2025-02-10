@@ -6,6 +6,8 @@ import numpy as np
 from config import get_args, check_args
 from sim.simulator import Simulator
 from sim.mpc.ped_nopred_mpc import PedNoPredMPC
+from sim.mpc.ped_linear_mpc import PedLinearMPC
+from sim.mpc.ped_sgan_mpc import PedSGANMPC
 
 if __name__ == "__main__":
     # configue and logs
@@ -42,13 +44,17 @@ if __name__ == "__main__":
 
     # DANGER!!! temporarily configure args
     args.group = False
-    args.react = True
+    args.react = False
     args.laser = False
     args.record = True
     args.animate = True
+    args.history = True
+    args.differential = True
     
     sim = Simulator(args, 'data/eth_0.json', logger)
-    agent = PedNoPredMPC(args, logger)
+    # agent = PedNoPredMPC(args, logger)
+    # agent = PedLinearMPC(args, logger)
+    agent = PedSGANMPC(args, logger, 'sgan/models/sgan-models/eth_8_model.pt')
     obs = sim.reset(100)
     done = False
     while not done:

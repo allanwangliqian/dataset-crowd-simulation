@@ -25,9 +25,11 @@ class BaseMPC(ABC):
         self.gamma = args.gamma # discount factor
 
         self.rollouts = None
+        self.rollouts_action = None
         self.num_rollouts = None
         self.rollout_costs = None
         self.robot_pos = None
+        self.robot_th = None
         self.robot_vel = None
         self.pos_predictions = None
         self.vel_predictions = None
@@ -37,17 +39,52 @@ class BaseMPC(ABC):
         # Generate rollouts for MPC
         len_horizon = self.future_steps
         
+        if self.robot_pos is None:
+            self.logger.error('Robot position is not set')
+            raise ValueError('Robot position is not set')
         start_config = self.robot_pos
         dt = self.dt
         vel = self.robot_speed
         omg = self.turn_speed
 
         if self.differential:
+            if self.robot_th is None:
+                self.logger.error('Robot orientation is not set')
+                raise ValueError('Robot orientation is not set')
+            start_th = self.robot_th
+            linear_vels = np.linspace(0, vel, self.num_linear)
+            linear_vels = linear_vels[1:]
+            angular_vels = np.linspace(0, omg, int((self.num_angular + 1) / 2))
+            angular_vels = np.concatenate((angular_vels, -angular_vels[1:]))
+
+            # Create all (v, w) pairs using meshgrid.
+            V_grid, W_grid = np.meshgrid(linear_vels, angular_vels, indexing='ij')
+            V = V_grid.flatten()  # shape: (num_rollouts,)
+            W = W_grid.flatten()  # shape: (num_rollouts,)
+            V = np.append(V, 0)
+            W = np.append(W, 0)
+            num_rollouts = V.shape[0]
+            rollouts = np.zeros((num_rollouts, len_horizon, 2), dtype=np.float32)
+
+            epsilon = 1e-6
+            cond = (np.abs(W) < epsilon)
+            W = np.where(cond, epsilon, W)
+
+            # Generate rollouts for each (v, w) pair
+            for i in range(len_horizon):
+                t = (i + 1) * dt
+                rollouts[:, i, 0] = start_config[0] + np.where(cond, V * t * np.cos(start_th), 
+                                                               V / W * (np.sin(start_th + W * t) - np.sin(start_th)))
+                rollouts[:, i, 1] = start_config[1] + np.where(cond, V * t * np.sin(start_th),
+                                                               -V / W * (np.cos(start_th + W * t) - np.cos(start_th)))
+
+            rollouts_action = np.stack((V, W), axis=-1)
+
+        else:
             num_rollouts = self.num_directions
 
             angles = np.linspace(np.radians(-180), np.radians(180), num_rollouts, endpoint=True)
             rollouts = np.zeros((num_rollouts * 9 + 1, len_horizon, 2), dtype=np.float32)
-            rollouts[:, 0] = start_config
             # radius of curvature, assuming the full curve is a quater circle.
             R1 = vel * dt * (len_horizon - 1) / (np.pi / 2)
 
@@ -109,8 +146,10 @@ class BaseMPC(ABC):
                     start_config[1] + (L * np.cos(angles[:] - ang))
                 
             rollouts[-1, :, :] = start_config
+            rollouts_action = (rollouts[:, 0, :] - start_config) / dt
 
         self.rollouts = rollouts
+        self.rollouts_action = rollouts_action
         self.num_rollouts =len(rollouts)
         return
 

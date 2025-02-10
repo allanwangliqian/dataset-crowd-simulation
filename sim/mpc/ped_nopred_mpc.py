@@ -12,8 +12,12 @@ class PedNoPredMPC(BaseMPC):
     def get_state_and_predictions(self, obs):
         # Get predictions for MPC
         # Repeat the current position for future steps
-        curr_pos = obs['pedestrians_pos']
-        curr_vel = obs['pedestrians_vel']
+        if self.laser:
+            curr_pos = obs['laser_pos']
+            curr_vel = obs['laser_vel']
+        else:
+            curr_pos = obs['pedestrians_pos']
+            curr_vel = obs['pedestrians_vel']
         self.boundary_const = obs['personal_size']
         self.pos_predictions = np.repeat(np.expand_dims(curr_pos, axis=1), self.future_steps, axis=1)
         self.vel_predictions = np.repeat(np.expand_dims(curr_vel, axis=1), self.future_steps, axis=1)
@@ -119,11 +123,13 @@ class PedNoPredMPC(BaseMPC):
         # Produce action based on observation for the MPC
 
         self.robot_pos = obs['robot_pos']
+        self.robot_vel = obs['robot_vel']
+        self.robot_th = obs['robot_th']
         self.robot_goal = obs['robot_goal']
     
         self.generate_rollouts()
         self.get_state_and_predictions(obs)
         self.evaluate_rollouts()
         best_idx = np.argmin(self.rollout_costs)
-        action = (self.rollouts[best_idx][0] - self.robot_pos) / self.dt
+        action = self.rollouts_action[best_idx]
         return action
