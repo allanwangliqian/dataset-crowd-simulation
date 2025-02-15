@@ -333,6 +333,12 @@ class Simulator(object):
         # get the observation dictionary
 
         observation_dict = {}
+        dataset_info = {'dataset': self.env.dataset, 
+                        'flag': self.env.flag,
+                        'frame_height': self.env.frame_height,
+                        'frame_width': self.env.frame_width,
+                        'H': self.env.H,}
+        observation_dict['dataset_info'] = dataset_info
         observation_dict['success'] = success
         observation_dict['num_pedestrians'] = self.num_ped
         observation_dict['robot_pos'] = self.robot_pos
@@ -373,6 +379,7 @@ class Simulator(object):
         else:
             case = self.case_list[case_id]
 
+        self.logger.info("Case {} of {}".format(self.case_pt, len(self.case_list)))
         self.logger.info("Resetting environment with case: {}".format(case))
 
         # env is (env_name, env_flag)

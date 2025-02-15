@@ -7,6 +7,13 @@ class PedNoPredMPC(BaseMPC):
     def __init__(self, args, logger):
         # MPC parameters
         super(PedNoPredMPC, self).__init__(args, logger)
+        if self.laser:
+            self.offset = args.ped_size
+        else:
+            self.offset = 0
+
+        self.pos_predictions = None
+        self.vel_predictions = None
         return
 
     def get_state_and_predictions(self, obs):
@@ -62,7 +69,7 @@ class PedNoPredMPC(BaseMPC):
                 min_ped_ori = np.arctan2(min_ped_vel[1], min_ped_vel[0])
                 rel_pos = rollout[i] - ped_pos_curr[idx]
                 rel_ang = np.arctan2(rel_pos[1], rel_pos[0]) - min_ped_ori
-                b_dist = boundary_dist(min_ped_vel, rel_ang, space_const)
+                b_dist = boundary_dist(min_ped_vel, rel_ang, space_const, self.offset)
                 if dists[i] <= b_dist:
                     hit_idx = min(hit_idx, i)
 

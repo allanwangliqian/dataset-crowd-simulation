@@ -32,8 +32,6 @@ class BaseMPC(ABC):
         self.robot_pos = None
         self.robot_th = None
         self.robot_vel = None
-        self.pos_predictions = None
-        self.vel_predictions = None
 
         self.state_time = []
         self.eval_time = []
