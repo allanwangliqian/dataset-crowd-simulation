@@ -11,3 +11,5 @@ torchvision
 torchaudio
 pyyaml
 pandas
+setuptools
+six

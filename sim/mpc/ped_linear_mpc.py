@@ -18,9 +18,14 @@ class PedLinearMPC(PedNoPredMPC):
             curr_pos = obs['pedestrians_pos']
             curr_vel = obs['pedestrians_vel']
         self.boundary_const = obs['personal_size']
-        self.pos_predictions = np.zeros((len(curr_pos), self.future_steps, 2))
-        self.vel_predictions = np.zeros((len(curr_pos), self.future_steps, 2))
-        for i in range(self.future_steps):
-            self.pos_predictions[:, i, :] = curr_pos + curr_vel * (i + 1) * self.dt
-            self.vel_predictions[:, i, :] = curr_vel
+
+        if len(curr_pos) == 0:
+            self.pos_predictions = []
+            self.vel_predictions = []
+        else:
+            self.pos_predictions = np.zeros((len(curr_pos), self.future_steps, 2))
+            self.vel_predictions = np.zeros((len(curr_pos), self.future_steps, 2))
+            for i in range(self.future_steps):
+                self.pos_predictions[:, i, :] = curr_pos + curr_vel * (i + 1) * self.dt
+                self.vel_predictions[:, i, :] = curr_vel
         return

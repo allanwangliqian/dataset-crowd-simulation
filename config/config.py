@@ -18,7 +18,7 @@ def get_args():
     parser.add_argument(
         "--dset-file",
         type=str,
-        default="datasets.yaml",
+        default="config/datasets.yaml",
         help="file on which datasets to load"
     )
 
@@ -96,7 +96,7 @@ def get_args():
     parser.add_argument(
         "--history",
         action='store_true',
-        default=False,
+        default=True,
         help="if history is considered"
     )
 
@@ -117,7 +117,7 @@ def get_args():
     parser.add_argument(
         "--record",
         action='store_true',
-        default=False,
+        default=True,
         help="if all the trajectories will be recorded for evaluation"
     )
 
@@ -269,8 +269,12 @@ def check_args(args, logger):
             logger.error("Group prediction requires grouping")
             raise Exception("Group prediction requires grouping")
         
-        if (args.pred_method == "sgan") and (args.lidar):
+        if (args.pred_method == "sgan") and (args.laser):
             logger.error("SGAN prediction does not support simulated lidar")
             raise Exception("SGAN prediction does not support simulated lidar")
+        
+        if (args.pred_method == "sgan") and not((args.future_steps == 8) or (args.future_steps == 12)):
+            logger.error("SGAN prediction requires 8 or 12 future steps")
+            raise Exception("SGAN prediction requires 8 or 12 future steps")
 
     return

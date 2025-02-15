@@ -75,8 +75,6 @@ class Simulator(object):
             self.future_steps = args.future_steps
             self.logger.info("Future steps: {}".format(self.future_steps))        
 
-        self.done = False
-
         self._load_cases(case_fpath)
         self.reset_cases()
 
@@ -129,8 +127,8 @@ class Simulator(object):
         # return the position and velocity history of a pedestrian
         # if the pedestrian is not in the dataset, return None
 
-        if ped_idx not in self.pedestrians_idx:
-            return None
+        if ped_idx not in self.env.video_pedidx_matrix[self.time]:
+            return None, None
         
         pos_history = []
         vel_history = []
@@ -263,15 +261,17 @@ class Simulator(object):
         # vel_series (T x M x 2) - velocities of the simulated laser scans at each time step
         #                          (index in same order as pos_series)
 
-        time_steps = np.shape(ped_pos_series)[1]
         pos_series = []
         vel_series = []
-        for i in range(time_steps):
-            pos_scan, vel_scan = self._ped_to_scans(robo_pos, 
-                                            ped_pos_series[:, i, :], 
-                                            ped_vel_series[:, i, :])
-            pos_series.append(pos_scan)
-            vel_series.append(vel_scan)
+
+        if not (len(ped_pos_series) == 0):
+            time_steps = np.shape(ped_pos_series)[1]
+            for i in range(time_steps):
+                pos_scan, vel_scan = self._ped_to_scans(robo_pos, 
+                                                ped_pos_series[:, i, :], 
+                                                ped_vel_series[:, i, :])
+                pos_series.append(pos_scan)
+                vel_series.append(vel_scan)
         return pos_series, vel_series
     
     def _simulate_laser(self):
@@ -357,7 +357,7 @@ class Simulator(object):
 
         return observation_dict
     
-    def reset(self, case_id=None):
+    def reset(self, case_id=None, reshuffle=False):
         # reset the environment
         # if case_id is None, then select the next case from the list
         
@@ -365,9 +365,15 @@ class Simulator(object):
             case = self.case_list[self.case_id_list[self.case_pt]]
             self.case_pt += 1
             if self.case_pt >= len(self.case_list):
-                self.reset_cases()
+                if reshuffle:
+                    self.reset_cases()
+                else:
+                    # if we have reached the end of the list, then we are done
+                    return None
         else:
             case = self.case_list[case_id]
+
+        self.logger.info("Resetting environment with case: {}".format(case))
 
         # env is (env_name, env_flag)
         self.env_name = case['env']
@@ -413,6 +419,8 @@ class Simulator(object):
             frame = self.render()
             self.image_sequences.append(frame)
 
+
+        self.done = False
         self.fail_reason = None
 
         return observation_dict
@@ -536,8 +544,8 @@ class Simulator(object):
                     tmp_pedestrians_pos_history = []
                     tmp_pedestrians_vel_history = []
                     for i in range(len(self.pedestrians_pos_history)):
-                        tmp_pedestrians_pos_history.append(self.pedestrians_pos_history[i][1:] + self.pedestrians_pos[i])
-                        tmp_pedestrians_vel_history.append(self.pedestrians_vel_history[i][1:] + self.pedestrians_vel[i])
+                        tmp_pedestrians_pos_history.append(self.pedestrians_pos_history[i][1:] + [self.pedestrians_pos[i]])
+                        tmp_pedestrians_vel_history.append(self.pedestrians_vel_history[i][1:] + [self.pedestrians_vel[i]])
 
                 # remove pedestrians that have reached their goals
                 new_pedestrians_idx = []
@@ -621,6 +629,24 @@ class Simulator(object):
 
         # return the observation, reward(not used), done, and info
         return observation_dict, 0, self.done, success
+    
+    def get_trial_history(self):
+        # get the history of the trial
+        if not self.record:
+            self.logger.error("Recording is not enabled.")
+            raise ValueError("Recording is not enabled.")
+        return self.obs_history
+    
+    def get_case_info(self):
+        # get the environment information
+        case_info = {}
+        case_info['env_name'] = self.env_name
+        case_info['env_flag'] = self.env_flag
+        case_info['start_pos'] = self.start_pos
+        case_info['goal_pos'] = self.goal_pos
+        case_info['start_frame'] = self.start_frame
+        case_info['time_limit'] = self.time_limit
+        return case_info
     
     def evaluate(self, output=False):
         # evaluate the results of the simulation trial

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from time import time
 import numpy as np
 
 class BaseMPC(ABC):
@@ -33,6 +34,9 @@ class BaseMPC(ABC):
         self.robot_vel = None
         self.pos_predictions = None
         self.vel_predictions = None
+
+        self.state_time = []
+        self.eval_time = []
         return
 
     def generate_rollouts(self):
@@ -153,7 +157,6 @@ class BaseMPC(ABC):
         self.num_rollouts =len(rollouts)
         return
 
-
     @abstractmethod
     def get_state_and_predictions(self, obs):
         # Get predictions for MPC
@@ -163,8 +166,41 @@ class BaseMPC(ABC):
     def evaluate_rollouts(self, mpc_weight=None):
         # Evaluate rollouts for MPC
         pass
+        
+    def get_processing_time(self):
+        # Get processing time for MPC
+        if len(self.state_time) == 0 or len(self.eval_time) == 0:
+            return None, None
+        else:
+            return np.mean(self.state_time), np.mean(self.eval_time)
 
-    @abstractmethod
     def act(self, obs):
-        # Get control for MPC, the overall function
-        pass
+        # Produce action based on observation for the MPC
+        # Inputs:
+        # obs: the observation
+        # Outputs:
+        # action: the action
+        # time: the time spent on state and evaluation
+
+        self.robot_pos = obs['robot_pos']
+        self.robot_vel = obs['robot_vel']
+        self.robot_th = obs['robot_th']
+        self.robot_goal = obs['robot_goal']
+    
+        self.generate_rollouts()
+
+        state_time_start = time()
+        self.get_state_and_predictions(obs)
+        state_time_end = time()
+
+        eval_time_start = time()
+        self.evaluate_rollouts()
+        eval_time_end = time()
+        
+        best_idx = np.argmin(self.rollout_costs)
+        action = self.rollouts_action[best_idx]
+
+        self.state_time.append(state_time_end - state_time_start)
+        self.eval_time.append(eval_time_end - eval_time_start)
+
+        return action

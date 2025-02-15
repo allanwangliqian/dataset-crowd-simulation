@@ -7,6 +7,9 @@ class PedSGANMPC(PedNoPredMPC):
     def __init__(self, args, logger, sgan_model_path):
         # MPC parameters
         super(PedSGANMPC, self).__init__(args, logger)
+        if args.laser:
+            self.logger.error('SGAN model does not support laser input')
+            raise ValueError('SGAN model does not support laser input')
         if args.history_steps != 8:
             self.logger.error('SGAN model only supports 8 history steps')
             raise ValueError('SGAN model only supports 8 history steps')

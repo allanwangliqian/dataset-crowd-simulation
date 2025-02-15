@@ -118,18 +118,3 @@ class PedNoPredMPC(BaseMPC):
                 end_dist_cost = np.linalg.norm(self.robot_goal - self.rollouts[i, hit_idx - 1])
             self.rollout_costs[i] = min_dist_weight * min_dist_cost + end_dist_weight * end_dist_cost
         return
-
-    def act(self, obs):
-        # Produce action based on observation for the MPC
-
-        self.robot_pos = obs['robot_pos']
-        self.robot_vel = obs['robot_vel']
-        self.robot_th = obs['robot_th']
-        self.robot_goal = obs['robot_goal']
-    
-        self.generate_rollouts()
-        self.get_state_and_predictions(obs)
-        self.evaluate_rollouts()
-        best_idx = np.argmin(self.rollout_costs)
-        action = self.rollouts_action[best_idx]
-        return action

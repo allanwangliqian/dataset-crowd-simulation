@@ -76,37 +76,43 @@ if __name__ == "__main__":
 
     # lower-left and upper-right coordinates to specify a square focus region
     check_regions = [[[2, 2], [8, 8]],
-                    [[-1, -6], [5, 0]],
-                    [[4.5, 2], [10.5, 8]],
-                    [[4.5, 3], [10.5, 9]],
-                    [[4.5, 3], [10.5, 9]]]
+                     [[-1, -6], [5, 0]],
+                     [[4.5, 2], [10.5, 8]],
+                     [[4.5, 3], [10.5, 9]],
+                     [[4.5, 3], [10.5, 9]]]
 
     start_end_pos = [[[[-8,5], [15,5]],
-                    [[15,5], [-8,5]],
-                    [[5,0], [5,12.5]],
-                    [[5,12.5], [5,0]]],
+                      [[15,5], [-8,5]],
+                      [[5,0], [5,12.5]],
+                      [[5,12.5], [5,0]]],
 
-                    [[[2,-10.5], [2,4.5]],
-                    [[2,4.5], [2,-10.5]],
-                    [[5,-3], [-3,-3]],
-                    [[-3,-3], [5,-3]]],
+                     [[[2,-10.5], [2,4.5]],
+                      [[2,4.5], [2,-10.5]],
+                      [[5,-3], [-3,-3]],
+                      [[-3,-3], [5,-3]]],
 
-                    [[[-0.5,5], [15.5,5]],
-                    [[15.5,5], [-0.5,5]],
-                    [[7.5,8], [7.5,2]],
-                    [[7.5,2], [7.5,8]]],
+                     [[[-0.5,5], [15.5,5]],
+                      [[15.5,5], [-0.5,5]],
+                      [[7.5,8], [7.5,2]],
+                      [[7.5,2], [7.5,8]]],
 
-                    [[[-0.5,6], [16,6]],
-                    [[16,6], [-0.5,6]],
-                    [[7.5,9], [7.5,2.5]],
-                    [[7.5,2.5], [7.5,9]]],
+                     [[[-0.5,6], [16,6]],
+                      [[16,6], [-0.5,6]],
+                      [[7.5,9], [7.5,2.5]],
+                      [[7.5,2.5], [7.5,9]]],
 
-                    [[[0,6], [16,6]],
-                    [[16,6], [0,6]],
-                    [[7.5,13], [7.5,0]],
-                    [[7.5,0], [7.5,13]]]] # num_dset x n x 2 x 2
+                     [[[0,6], [16,6]],
+                      [[16,6], [0,6]],
+                      [[7.5,13], [7.5,0]],
+                      [[7.5,0], [7.5,13]]]] # num_dset x n x 2 x 2
     
-    if not (len(datasets) == len(dataset_idxes) == len(check_regions) == len(start_end_pos)):
+    task_info = [["C", "C", "F", "F"], 
+                 ["C", "C", "F", "F"],
+                 ["C", "C", "F", "F"],
+                 ["C", "C", "F", "F"],
+                 ["C", "C", "F", "F"]]
+    
+    if not (len(datasets) == len(dataset_idxes) == len(check_regions) == len(start_end_pos) == len(task_info)):
         raise Exception("Given dataset information should have the same length!")
 
     interval = int(interval_factor * fps)
@@ -135,7 +141,8 @@ if __name__ == "__main__":
                 valid_frames.append(j)
 
         # generate test case
-        for st_ed in start_end_pos[i]:
+        case_id = 0
+        for j, st_ed in enumerate(start_end_pos[i]):
             region_mid_pt = np.array([(region[0][0] + region[1][0]) / 2, 
                                     (region[0][1] + region[1][1]) / 2])
             st_pt = np.array(st_ed[0])
@@ -160,14 +167,17 @@ if __name__ == "__main__":
                     if not ped_near_start:
                         elem = {'env': datasets[i], 
                                 'env_flag': dataset_idxes[i], 
+                                'case_id': case_id,
+                                'task': task_info[i][j],
                                 'start_pos': st_pt.tolist(), 
                                 'end_pos': ed_pt.tolist(), 
                                 'start_frame': start_frame, 
                                 'time_limit': time_limit}
+                        case_id += 1
                         count += 1
                         cases.append(elem)
                         all_cases.append(elem)
-            print(count)
+            print("Num cases in this task: ", count)
 
         print("Num cases: ", len(cases))
         with open(pfile_name, "w") as fp:
