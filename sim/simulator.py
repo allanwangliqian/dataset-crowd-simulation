@@ -132,7 +132,9 @@ class Simulator(object):
         
         pos_history = []
         vel_history = []
-        for i in range(self.time - self.history_steps, self.time):
+        #for i in range(self.time - self.history_steps, self.time):
+        # The history also includes the current time step
+        for i in range(self.time - self.history_steps + 1, self.time + 1):
             if (i < 0) or (ped_idx not in self.env.video_pedidx_matrix[i]):
                 start_frame = self.env.people_start_frame[ped_idx]
                 start_pos = np.array(self.env.people_coords_complete[ped_idx][0])
@@ -301,10 +303,17 @@ class Simulator(object):
 
         self.group_labels = grouping(self.pedestrians_pos, self.pedestrians_vel, self.group_params)
         self.laser_group_labels = []
+        self.laser_group_labels_history = []
         if self.laser:
             tmp_group_params = self.group_params.copy()
             tmp_group_params['pos_threshold'] = self.group_params['pos_threshold'] - self.ped_size
             self.laser_group_labels = grouping(self.laser_pos, self.laser_vel, tmp_group_params)
+            if len(self.laser_group_labels_history) == 0:
+                for i in range(len(self.laser_pos_history)):
+                    self.laser_group_labels_history.append(grouping(self.laser_pos_history[i], self.laser_vel_history[i], tmp_group_params))
+            else:
+                self.laser_group_labels_history.pop(0)
+                self.laser_group_labels_history.append(self.laser_group_labels)
         return
     
     def _extract_observation(self, observation_dict):
@@ -359,6 +368,7 @@ class Simulator(object):
         if self.group:
             observation_dict['group_labels'] = np.array(self.group_labels)
             observation_dict['laser_group_labels'] = np.array(self.laser_group_labels) # empty if laser not enabled
+            observation_dict['laser_group_labels_history'] = self.laser_group_labels_history
         observation_dict['personal_size'] = self.group_params['size_const']
 
         return observation_dict
@@ -551,8 +561,8 @@ class Simulator(object):
                     tmp_pedestrians_pos_history = []
                     tmp_pedestrians_vel_history = []
                     for i in range(len(self.pedestrians_pos_history)):
-                        tmp_pedestrians_pos_history.append(self.pedestrians_pos_history[i][1:] + [self.pedestrians_pos[i]])
-                        tmp_pedestrians_vel_history.append(self.pedestrians_vel_history[i][1:] + [self.pedestrians_vel[i]])
+                        tmp_pedestrians_pos_history.append(self.pedestrians_pos_history[i][1:] + [tmp_pedestrians_pos[i]])
+                        tmp_pedestrians_vel_history.append(self.pedestrians_vel_history[i][1:] + [tmp_pedestrians_vel[i]])
 
                 # remove pedestrians that have reached their goals
                 new_pedestrians_idx = []

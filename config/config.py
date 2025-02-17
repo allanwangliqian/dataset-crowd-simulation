@@ -224,10 +224,16 @@ def get_args():
 
     # device configuration
     parser.add_argument(
+        '--gpu-id',
+        type=int,
+        default=0,
+        help='GPU device ID')
+
+    parser.add_argument(
         '--no-cuda',
         action='store_true',
         default=False,
-        help='disables CUDA training')
+        help='disables CUDA training/inference')
 
     try:
         args = parser.parse_args()
@@ -245,6 +251,8 @@ def check_args(args, logger):
         logger.info("GPU enabled")
     else:
         logger.info("GPU disabled")
+        logger.error("GPU is required for this simulator")
+        raise Exception("GPU is required for this simulator")
 
     if args.pred:
         

@@ -15,7 +15,7 @@ parser.add_argument('--dset_type', default='test', type=str)
 
 class SGANInference(object):
 
-    def __init__(self, model_path):
+    def __init__(self, model_path, device=0):
         # To initialize it, a path to a pretrained model is needed
         # models are stored in sgan/models
         # for example: model_path = "models/sgan-models/eth_8_model.pt"
@@ -33,7 +33,7 @@ class SGANInference(object):
         # number of samples to draw to get the final predicted trajectory
         self.num_samples = 20
 
-        self.cuda = torch.device('cuda:0')
+        self.cuda = torch.device('cuda:' + str(device))
         checkpoint = torch.load(path,map_location=torch.device('cpu'))
         self.generator = self.get_generator(checkpoint)
         self.args = AttrDict(checkpoint['args'])
@@ -67,12 +67,12 @@ class SGANInference(object):
     def evaluate(self, obs_traj):
         # inputs:
         # depending on the observation length of your chosen model
-        # the input obs_traj should be a numpy array of either size nx8x2 or nx12x2
+        # the input obs_traj should be a numpy array of size nx8x2
         # where n is the number of people in the scene
         # obs_traj is simply the observed trajectories (sequence of coordinates)
         #
         # outputs:
-        # outputs nx8x2 predicted trajectories (sequence of coordinates)
+        # outputs nx8x2 or nx12x2 predicted trajectories (sequence of coordinates)
 
         num_people = obs_traj.shape[0]
         traj_length = obs_traj.shape[1]
