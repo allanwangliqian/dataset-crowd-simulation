@@ -34,5 +34,5 @@ class PedSGANMPC(PedNoPredMPC):
             self.pos_predictions = self.sgan.evaluate(history_pos)
             self.vel_predictions = np.zeros_like(self.pos_predictions)
             self.vel_predictions[:, 1:, :] = (self.pos_predictions[:, 1:, :] - self.pos_predictions[:, :-1, :]) / self.dt
-            self.vel_predictions[:, 0, :] = (self.pos_predictions[:, 1, :] - curr_pos) / self.dt
+            self.vel_predictions[:, 0, :] = (self.pos_predictions[:, 0, :] - curr_pos) / self.dt
         return

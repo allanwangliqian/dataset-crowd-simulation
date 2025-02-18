@@ -64,7 +64,7 @@ class GroupShapePrediction(object):
         dgs.set_aug(angle=0)
         img_sequence = []
         for i, v in enumerate(vertice_sequence):
-            canvas = np.zeros((self.dataset_info.frame_height, self.dataset_info.frame_width, 3), dtype=np.uint8)
+            canvas = np.zeros((self.dataset_info["frame_height"], self.dataset_info["frame_width"], 3), dtype=np.uint8)
             img = dgs.draw_group_shape(v, canvas, center=True, aug=False)
             img_sequence.append(img)
 
@@ -93,7 +93,7 @@ class GroupShapePrediction(object):
             return fnl_pred_img_sequence
         pred_length = len(all_pred_img_sequences[0])
         for i in range(pred_length):
-            canvas = np.zeros((self.dataset_info.frame_height, self.dataset_info.frame_width), dtype=np.uint8)
+            canvas = np.zeros((self.dataset_info["frame_height"], self.dataset_info["frame_width"]), dtype=np.uint8)
             for j in range(num_groups):
                 img = all_pred_img_sequences[j][i]
                 img = np.round(img)
@@ -126,14 +126,9 @@ class GroupShapePrediction(object):
 
         for curr_label in all_labels:
             # Get the positions and velocities of the group members
-            group_positions = []
-            group_velocities = []
-            for i, l in enumerate(labels):
-                if l == curr_label:
-                    group_positions.append(positions[i])
-                    group_velocities.append(velocities[i])
-            group_positions = np.array(group_positions)
-            group_velocities = np.array(group_velocities)
+            idxes = np.where(labels == curr_label)[0]
+            group_positions = positions[idxes]
+            group_velocities = velocities[idxes]
             
             # Get the vertices of the group shape
             vertice_sequence = []
@@ -179,27 +174,16 @@ class GroupShapePrediction(object):
             centers = []
             vel_centers = []
             for j, curr_label in enumerate(all_labels):
-                group_positions = []
-                group_velocities = []
-                center_x = 0
-                center_y = 0
-                center_vx = 0
-                center_vy = 0
-                for k, l in enumerate(labels):
-                    if curr_label == l:
-                        group_positions.append(pos[k])
-                        group_velocities.append(vel[k])
-                        center_x += pos[k][0]
-                        center_y += pos[k][1]
-                        center_vx += vel[k][0]
-                        center_vy += vel[k][1]
+                idxes = np.where(labels == curr_label)[0]
+                group_positions = pos[idxes]
+                group_velocities = vel[idxes]
+                center_x = np.mean(group_positions[:, 0])
+                center_y = np.mean(group_positions[:, 1])
+                center_vx = np.mean(group_velocities[:, 0])
+                center_vy = np.mean(group_velocities[:, 1])
+
                 all_group_pos.append(group_positions)
                 all_group_vel.append(group_velocities)
-                num_members = len(group_positions)
-                center_x /= num_members
-                center_y /= num_members
-                center_vx /= num_members
-                center_vy /= num_members
                 centers.append(np.array([center_x, center_y]))
                 vel_centers.append(np.array([center_vx, center_vy]))
             group_pos_series.append(all_group_pos)
@@ -267,19 +251,11 @@ class GroupShapePrediction(object):
         num_groups = len(all_labels)
         all_pred_img_sequences = []
         for i, curr_label in enumerate(all_labels):
-            group_positions = []
-            group_velocities = []
-            center_vx = 0
-            center_vy = 0
-            for j, l in enumerate(labels):
-                if curr_label == l:
-                    group_positions.append(positions[j])
-                    group_velocities.append(velocities[j])
-                    center_vx += velocities[j][0]
-                    center_vy += velocities[j][1]
-            num_members = len(group_positions)
-            center_vx /= num_members
-            center_vy /= num_members
+            idxes = np.where(labels == curr_label)[0]
+            group_positions = positions[idxes]
+            group_velocities = velocities[idxes]
+            center_vx = np.mean(group_velocities[:, 0])
+            center_vy = np.mean(group_velocities[:, 1])
             vel_center = np.array([center_vx, center_vy])
 
             group_positions = np.array(group_positions)
@@ -293,7 +269,7 @@ class GroupShapePrediction(object):
             dgs = DrawGroupShape(self.dataset_info)
             img_sequence = []
             for j, v in enumerate(vertice_sequence):
-                canvas = np.zeros((self.dataset_info.frame_height, self.dataset_info.frame_width, 3), dtype=np.uint8)
+                canvas = np.zeros((self.dataset_info["frame_height"], self.dataset_info["frame_width"], 3), dtype=np.uint8)
                 img = dgs.draw_group_shape(v, canvas, center=False, aug=False)
                 img_sequence.append(img[:, :, 0])
             all_pred_img_sequences.append(img_sequence)

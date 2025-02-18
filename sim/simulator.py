@@ -22,7 +22,7 @@ class Simulator(object):
     # or only preserve the start and goals as they first appear/disappear
     # and use ORCA to drive them to the goals.
 
-    def __init__(self, args, case_fpath, logger):
+    def __init__(self, args, case_fpath, logger, reshuffle=False):
         # case_fpath is the json file path to the test cases
         # please run test_case_generation.py to generate test cases first
 
@@ -76,7 +76,7 @@ class Simulator(object):
             self.logger.info("Future steps: {}".format(self.future_steps))        
 
         self._load_cases(case_fpath)
-        self.reset_cases()
+        self.reset_cases(reshuffle)
 
         return
     
@@ -92,11 +92,12 @@ class Simulator(object):
         self.case_pt = 0
         return
     
-    def reset_cases(self):
+    def reset_cases(self, reshuffle=False):
         # shuffle the cases
 
         self.case_id_list = np.arange(len(self.case_list))
-        np.random.shuffle(self.case_id_list)
+        if reshuffle:
+            np.random.shuffle(self.case_id_list)
         self.case_pt = 0
         return
     
@@ -382,7 +383,7 @@ class Simulator(object):
             self.case_pt += 1
             if self.case_pt >= len(self.case_list):
                 if reshuffle:
-                    self.reset_cases()
+                    self.reset_cases(reshuffle=True)
                 else:
                     # if we have reached the end of the list, then we are done
                     return None

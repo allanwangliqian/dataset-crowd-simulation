@@ -4,7 +4,7 @@ from sim.mpc.group_nopred_mpc import GroupNoPredMPC
 from sim.mpc.group_shape_prediction import GroupShapePrediction
 
 class GroupLinearMPC(GroupNoPredMPC):
-    # MPC class for Group-based representation with Convolutional prediction
+    # MPC class for Group-based representation with central-based linear prediction
     def __init__(self, args, logger):
         # MPC parameters
         super(GroupLinearMPC, self).__init__(args, logger)

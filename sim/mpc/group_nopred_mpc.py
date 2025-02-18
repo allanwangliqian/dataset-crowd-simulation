@@ -3,7 +3,7 @@ import copy
 
 from scipy import signal
 from sim.mpc.base_mpc import BaseMPC
-from sim.mpc.group import boundary_dist, draw_all_social_spaces
+from sim.mpc.group import draw_all_social_spaces
 from sim.mpc.img_process import DrawGroupShape
 
 class GroupNoPredMPC(BaseMPC):

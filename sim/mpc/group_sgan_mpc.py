@@ -38,7 +38,7 @@ class GroupSGANMPC(GroupNoPredMPC):
             pos_predictions = self.sgan.evaluate(history_pos)
             vel_predictions = np.zeros_like(pos_predictions)
             vel_predictions[:, 1:, :] = (pos_predictions[:, 1:, :] - pos_predictions[:, :-1, :]) / self.dt
-            vel_predictions[:, 0, :] = (pos_predictions[:, 1, :] - curr_pos) / self.dt
+            vel_predictions[:, 0, :] = (pos_predictions[:, 0, :] - curr_pos) / self.dt
 
             for i in range(self.future_steps):
                 frame = self._get_frame(self.dataset_info, pos_predictions[:, i, :], vel_predictions[:, i, :], group_ids, self.boundary_const)

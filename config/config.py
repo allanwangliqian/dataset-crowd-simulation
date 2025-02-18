@@ -129,6 +129,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--edge-offset",
+        type=float,
+        default=1.0,
+        help="length of offset for the back edge"
+    )
+
+    parser.add_argument(
         "--pred-method",
         type=str,
         default=None,
@@ -284,5 +291,9 @@ def check_args(args, logger):
         if (args.pred_method == "sgan") and not((args.future_steps == 8) or (args.future_steps == 12)):
             logger.error("SGAN prediction requires 8 or 12 future steps")
             raise Exception("SGAN prediction requires 8 or 12 future steps")
+        
+        if (args.edge) and (args.edge_offset <= 0):
+            logger.error("Edge offset must be positive")
+            raise Exception("Edge offset must be positive")
 
     return

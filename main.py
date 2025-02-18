@@ -49,7 +49,7 @@ if __name__ == "__main__":
     while not (obs is None):
         case_info = sim.get_case_info()
 
-        if args.pred_method == 'sgan':
+        if (args.pred_method == 'sgan') or (args.pred_method == 'edge'):
             if (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 0):
                 sgan_model_path = "sgan/models/sgan-models/eth_" + str(args.future_steps) + "_model.pt"
             elif (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 1):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         result_info = {'history': history, 'result': rst}
         results.append(result_info)
 
-        obs = sim.reset()
+        with open(os.path.join(args.output_dir, "results.pickle"), "wb") as fp:
+            pickle.dump(results, fp)
 
-    with open(os.path.join(args.output_dir, "results.pickle"), "wb") as fp:
-        pickle.dump(results, fp)
+        obs = sim.reset()
