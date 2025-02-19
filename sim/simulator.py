@@ -629,9 +629,9 @@ class Simulator(object):
             ped_dists = np.linalg.norm(self.robot_pos - np.array(self.pedestrians_pos), axis=1)
             if (np.min(ped_dists) < self.collision_radius):
                 # If the pedestrian just spawned within ghost time, then it is ok.
-                min_idx = np.argmin(ped_dists)
-                ped_idx = self.pedestrians_idx[min_idx]
-                if ((self.time - self.env.people_start_frame[ped_idx]) * self.dt) > self.ghost_time:
+                idxes = np.where(ped_dists < self.collision_radius)[0]
+                ped_idxes = [self.pedestrians_idx[i] for i in idxes]
+                if any([(self.time - self.env.people_start_frame[ped_idx]) * self.dt > self.ghost_time for ped_idx in ped_idxes]):
                     success = False
                     self.done = True
                     self.fail_reason = "Collision"
