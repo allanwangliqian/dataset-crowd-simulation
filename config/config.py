@@ -30,6 +30,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--ghost-time",
+        type=float,
+        default=1.0,
+        help="time for the pedestrian to be ghosted after spawn"
+    )
+
+    parser.add_argument(
         "--dt",
         type=float,
         default=0.1,
