@@ -13,6 +13,8 @@ class GroupShapePrediction(object):
 
         if path is None:
             logger.warning('No model path provided. Only linear prediction is available!')
+            self.cuda = torch.device('cpu')
+            self.model = None
         else:
             self.cuda = torch.device('cuda:' + str(device))
             self.model = ConvAutoencoder()

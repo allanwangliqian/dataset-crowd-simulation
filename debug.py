@@ -51,23 +51,24 @@ if __name__ == "__main__":
     # DANGER!!! temporarily configure args
     args.group = True
     args.react = False
-    args.laser = False
+    args.laser = True
     args.record = True
     args.animate = True
     args.history = True
     args.differential = False
     
     sim = Simulator(args, 'data/eth_0.json', logger)
+    obs = sim.reset(100)
+    dataset_info = obs['dataset_info']
     # agent = PedNoPredMPC(args, logger)
     # agent = PedLinearMPC(args, logger)
     # agent = PedSGANMPC(args, logger, 'sgan/models/sgan-models/eth_8_model.pt')
-    agent = GroupNoPredMPC(args, logger)
-    # agent = GroupLinearMPC(args, logger)
-    # agent = GroupSGANMPC(args, logger, 'sgan/models/sgan-models/eth_8_model.pt')
-    # agent = GroupConvMPC(args, logger, 'checkpoints/model_conv_0.pth')
-    # agent = GroupEdgeMPC(args, logger, 'sgan/models/sgan-models/eth_8_model.pt')
+    # agent = GroupNoPredMPC(args, logger, dataset_info)
+    # agent = GroupLinearMPC(args, logger, dataset_info)
+    # agent = GroupSGANMPC(args, logger, dataset_info, 'sgan/models/sgan-models/eth_8_model.pt')
+    agent = GroupConvMPC(args, logger, dataset_info, 'checkpoints/model_conv_0.pth')
+    # agent = GroupEdgeMPC(args, logger, dataset_info, 'sgan/models/sgan-models/eth_8_model.pt')
 
-    obs = sim.reset(100)
     done = False
     start_time = time()
     while not done:

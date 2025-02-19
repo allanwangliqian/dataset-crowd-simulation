@@ -7,7 +7,7 @@ from sgan.scripts.inference import SGANInference
 
 class GroupEdgeMPC(BaseMPC):
     # MPC class for Edge-based representation with node-based trajectory prediction
-    def __init__(self, args, logger, sgan_model_path):
+    def __init__(self, args, logger, dataset_info, sgan_model_path):
         # MPC parameters
         super(GroupEdgeMPC, self).__init__(args, logger)
         if self.laser:
@@ -16,7 +16,7 @@ class GroupEdgeMPC(BaseMPC):
             self.offset = 0
         self.edge_offset = args.edge_offset
 
-        self.dataset_info = None
+        self.dataset_info = dataset_info
         self.edge_predictions = None
 
         if args.history_steps != 8:
@@ -326,7 +326,6 @@ class GroupEdgeMPC(BaseMPC):
             history_vel = obs['pedestrians_vel_history']
         robot_pos = obs['robot_pos']
 
-        self.dataset_info = obs['dataset_info']
         self.boundary_const = obs['personal_size']
         num_ped = len(curr_pos)
 
@@ -356,8 +355,8 @@ class GroupEdgeMPC(BaseMPC):
                 
             if self.animate and (not self.paint_boundary):
                 self.boundary_pts = self._vertices_from_edge_pts(robot_pos,
-                                                                 edge_pos[-1],
-                                                                 edge_vel[-1],
+                                                                 edge_pos[:, -1, :],
+                                                                 edge_vel[:, -1, :],
                                                                  self.boundary_const,
                                                                  self.edge_offset,
                                                                  self.offset)

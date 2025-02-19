@@ -6,9 +6,9 @@ from sgan.scripts.inference import SGANInference
 
 class GroupSGANMPC(GroupNoPredMPC):
     # MPC class for Group-based representation with SGAN prediction
-    def __init__(self, args, logger, sgan_model_path):
+    def __init__(self, args, logger, dataset_info, sgan_model_path):
         # MPC parameters
-        super(GroupSGANMPC, self).__init__(args, logger)
+        super(GroupSGANMPC, self).__init__(args, logger, dataset_info)
         if args.laser:
             self.logger.error('SGAN model does not support laser input')
             raise ValueError('SGAN model does not support laser input')
@@ -29,7 +29,6 @@ class GroupSGANMPC(GroupNoPredMPC):
         curr_vel = obs['pedestrians_vel']
         history_pos = obs['pedestrians_pos_history']
         group_ids = obs['group_labels']
-        self.dataset_info = obs['dataset_info']
         self.boundary_const = obs['personal_size']
         num_ped = len(curr_pos)
 

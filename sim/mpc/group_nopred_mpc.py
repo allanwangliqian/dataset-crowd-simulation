@@ -10,7 +10,7 @@ from sim.mpc.img_process import DrawGroupShape
 class GroupNoPredMPC(BaseMPC):
 # MPC class for Group-based representation without prediction
 
-    def __init__(self, args, logger):
+    def __init__(self, args, logger, dataset_info):
         # MPC parameters
         super(GroupNoPredMPC, self).__init__(args, logger)
         if self.laser:
@@ -18,7 +18,7 @@ class GroupNoPredMPC(BaseMPC):
         else:
             self.offset = 0
 
-        self.dataset_info = None
+        self.dataset_info = dataset_info
         self.frame_predictions = None
         self.boundary_predictions = None
         return
@@ -74,7 +74,6 @@ class GroupNoPredMPC(BaseMPC):
         self.boundary_const = obs['personal_size']
 
         if not len(group_ids) == 0:
-            self.dataset_info = obs['dataset_info']
             frame = self._get_frame(self.dataset_info, curr_pos, curr_vel, group_ids, self.boundary_const)
             group_boundary = self._frame_to_vertices(self.dataset_info, frame)
 

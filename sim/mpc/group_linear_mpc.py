@@ -6,9 +6,11 @@ from sim.mpc.group_shape_prediction import GroupShapePrediction
 
 class GroupLinearMPC(GroupNoPredMPC):
     # MPC class for Group-based representation with central-based linear prediction
-    def __init__(self, args, logger):
+    def __init__(self, args, logger, dataset_info):
         # MPC parameters
-        super(GroupLinearMPC, self).__init__(args, logger)
+        super(GroupLinearMPC, self).__init__(args, logger, dataset_info)
+
+        self.predictor = GroupShapePrediction(self.dataset_info, None, self.logger)
         return
 
     def get_state_and_predictions(self, obs):
@@ -23,17 +25,14 @@ class GroupLinearMPC(GroupNoPredMPC):
             curr_vel = obs['pedestrians_vel']
             group_ids = obs['group_labels']
 
-        self.dataset_info = obs['dataset_info']
         self.boundary_const = obs['personal_size']
         num_ped = len(curr_pos)
-
-        predictor = GroupShapePrediction(self.dataset_info, None, self.logger)
 
         self.frame_predictions = []
         self.boundary_predictions = []
 
         if not num_ped == 0:
-            self.frame_predictions = predictor.linear_predict(curr_pos, curr_vel, group_ids, self.future_steps, self.dt, self.boundary_const, self.offset)
+            self.frame_predictions = self.predictor.linear_predict(curr_pos, curr_vel, group_ids, self.future_steps, self.dt, self.boundary_const, self.offset)
 
             for frame in self.frame_predictions:
                 self.boundary_predictions.append(self._frame_to_vertices(self.dataset_info, frame))

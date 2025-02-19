@@ -9,6 +9,11 @@ from sim.simulator import Simulator
 from sim.mpc.ped_nopred_mpc import PedNoPredMPC
 from sim.mpc.ped_linear_mpc import PedLinearMPC
 from sim.mpc.ped_sgan_mpc import PedSGANMPC
+from sim.mpc.group_nopred_mpc import GroupNoPredMPC
+from sim.mpc.group_linear_mpc import GroupLinearMPC
+from sim.mpc.group_sgan_mpc import GroupSGANMPC
+from sim.mpc.group_conv_mpc import GroupConvMPC
+from sim.mpc.group_edge_mpc import GroupEdgeMPC
 
 if __name__ == "__main__":
     # configue and logs
@@ -46,9 +51,11 @@ if __name__ == "__main__":
     results = []
     sim = Simulator(args, 'data/all.json', logger)
     obs = sim.reset()
+    dataset_info = obs['dataset_info']
     while not (obs is None):
         case_info = sim.get_case_info()
 
+        # set up the prediction model checkpoint path
         if (args.pred_method == 'sgan') or (args.pred_method == 'edge'):
             if (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 0):
                 sgan_model_path = "sgan/models/sgan-models/eth_" + str(args.future_steps) + "_model.pt"
@@ -64,9 +71,37 @@ if __name__ == "__main__":
                 logger.error('Dataset is not supported by SGAN')
                 raise ValueError('Dataset is not supported by SGAN')
             
+        if args.pred_method == 'group':
+            if (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 0):
+                conv_model_path = "checkpoints/model_conv_0.pth"
+            elif (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 1):
+                conv_model_path = "checkpoints/model_conv_1.pth"
+            elif (case_info['env_name'] == 'ucy') and (case_info['env_flag'] == 0):
+                conv_model_path = "checkpoints/model_conv_2.pth"
+            elif (case_info['env_name'] == 'ucy') and (case_info['env_flag'] == 1):
+                conv_model_path = "checkpoints/model_conv_3.pth"
+            elif (case_info['env_name'] == 'ucy') and (case_info['env_flag'] == 2):
+                conv_model_path = "checkpoints/model_conv_4.pth"
+            else:
+                logger.error('Dataset is not supported by Conv3D')
+                raise ValueError('Dataset is not supported by Conv3D')
+            
         # set up the agent
         if args.group:
-            raise NotImplementedError('Group simulation is not implemented yet')
+            if not args.pred:
+                agent = GroupNoPredMPC(args, logger, dataset_info)
+            else:
+                if args.pred_method == 'linear':
+                    agent = GroupLinearMPC(args, logger, dataset_info)
+                elif args.pred_method == 'sgan':
+                    agent = GroupSGANMPC(args, logger, dataset_info, sgan_model_path)
+                elif args.pred_method == 'group':
+                    agent = GroupConvMPC(args, logger, dataset_info, conv_model_path)
+                elif args.pred_method == 'edge':
+                    agent = GroupEdgeMPC(args, logger, dataset_info, sgan_model_path)
+                else:
+                    logger.error('Prediction method is not supported')
+                    raise ValueError('Prediction method is not supported')
         else:
             if not args.pred:
                 agent = PedNoPredMPC(args, logger)
