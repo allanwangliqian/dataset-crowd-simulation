@@ -35,6 +35,10 @@ tar -xvf datasets.tar
 ```
 
 # Usage
+- Download the trained checkpoints for Conv3D Autoencoder from [here](https://drive.google.com/drive/folders/1y22xR55nCt8XD_kCQF7Oud2zWGpNxOlJ?usp=sharing), extract into the home folder. You should have a "checkpoints" folder in the project's base directory.
+```
+tar -xvf checkpoints.tar
+```
 - Make a data folder
 ```
 mkdir data
