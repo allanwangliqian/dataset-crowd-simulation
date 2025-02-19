@@ -188,6 +188,8 @@ class Simulator(object):
         #                     (index in same order as laser_pos)
 
         num_ped = len(ped_pos)
+        if num_ped == 0:
+            return np.array([]), np.array([])
 
         ang_res = self.laser_res
         det_range = self.laser_range
@@ -198,53 +200,46 @@ class Simulator(object):
         laser_pos = []
         laser_vel = []
         ang = 0
+         # Iterate over laser angles
         while ang < (2 * np.pi):
-            if not (ang % (np.pi / 2) == 0): # or we will get Nan(Inf)
-                min_dist = det_range
-                laser_x = None
-                laser_y = None 
-                min_idx = None
-                for i in range(num_ped):
-
-                    # The math used to check collision with pedestrian circles
-                    a = ped_pos[i][0] - robo_pos[0]
-                    b = ped_pos[i][1] - robo_pos[1]
-                    A = 1 + np.tan(ang) ** 2
-                    B = -2 * (a + b * np.tan(ang))
-                    C = a ** 2 + b ** 2 - r_sq
-                    check_root = round(B ** 2 - 4 * A * C, 12)
-
-                    # If there is a collision
-                    if check_root >= 0:
-                        x1 = (-B - np.sqrt(check_root)) / (2 * A)
-                        y1 = x1 * np.tan(ang)
-                        x2 = (-B + np.sqrt(check_root)) / (2 * A)
-                        y2 = x2 * np.tan(ang)
-                        mag1 = np.sqrt(x1 ** 2 + y1 ** 2)
-                        mag2 = np.sqrt(x2 ** 2 + y2 ** 2)
-                        # We only want the collision point that is closer to the robot
-                        if mag1 < mag2:
-                            append_x = x1
-                            append_y = y1
-                            dist = mag1
-                        else:
-                            append_x = x2
-                            append_y = y2
-                            dist = mag2
+            # Skip angles where tan(ang) might be unstable
+            if not (ang % (np.pi / 2) == 0):
+                # Compute coefficients in vectorized manner
+                diff = ped_pos - robo_pos  # shape: (num_ped, 2)
+                a_vals = diff[:, 0]
+                b_vals = diff[:, 1]
+                
+                tan_ang = np.tan(ang)
+                A = 1 + tan_ang ** 2
+                B = -2 * (a_vals + b_vals * tan_ang)
+                C = a_vals**2 + b_vals**2 - r_sq
+                
+                # Compute discriminant for all pedestrians
+                disc = B**2 - 4 * A * C
+                valid = disc >= 0
+                if valid.any():
+                    sqrt_disc = np.sqrt(disc[valid])
+                    x1 = (-B[valid] - sqrt_disc) / (2 * A)
+                    x2 = (-B[valid] + sqrt_disc) / (2 * A)
+                    y1 = x1 * tan_ang
+                    y2 = x2 * tan_ang
+                    mag1 = np.sqrt(x1 ** 2 + y1 ** 2)
+                    mag2 = np.sqrt(x2 ** 2 + y2 ** 2)
+                    # Choose the closer hit for each pedestrian
+                    dist = np.where(mag1 < mag2, mag1, mag2)
+                    hit_x = np.where(mag1 < mag2, x1, x2)
+                    hit_y = np.where(mag1 < mag2, y1, y2)
+                    
+                    # Find the pedestrian with the minimum distance along the ray
+                    min_idx = np.argmin(dist)
+                    min_dist = dist[min_idx]
+                    if min_dist < det_range:
                         # Inject noise
                         noise = np.random.uniform(-noise_limit, noise_limit)
-                        append_x += noise * np.cos(ang)
-                        append_y += noise * np.sin(ang)
-                        # Check if the same ray has hit a closer pedestrian before
-                        if dist < min_dist:
-                            min_dist = dist
-                            min_idx = i
-                            laser_x = append_x + robo_pos[0]
-                            laser_y = append_y + robo_pos[1]
-                if not (laser_x == None):
-                    laser_pos.append([laser_x, laser_y])
-                    laser_vel.append([ped_vel[min_idx][0], ped_vel[min_idx][1]]) 
-
+                        hit_x = hit_x[min_idx] + noise * np.cos(ang)
+                        hit_y = hit_y[min_idx] + noise * np.sin(ang)
+                        laser_pos.append([hit_x + robo_pos[0], hit_y + robo_pos[1]])
+                        laser_vel.append(ped_vel[min_idx])
             ang += ang_res
         return np.array(laser_pos), np.array(laser_vel)
 
