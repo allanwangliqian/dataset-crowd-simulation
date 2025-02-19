@@ -47,6 +47,7 @@ class Simulator(object):
         self.react = args.react
         self.animate = args.animate
         self.record = args.record
+        self.paint_boundary = args.paint_boundary
         if self.laser:
             self.ped_size = args.ped_size
             self.laser_range = args.laser_range
@@ -443,6 +444,17 @@ class Simulator(object):
 
         return observation_dict
     
+    def get_latest_render_frame(self):
+        # get the latest render frame
+        if len(self.image_sequences) == 0:
+            return None
+        return self.image_sequences[-1]
+    
+    def update_latest_render_frame(self, frame):
+        # update the latest render frame
+        self.image_sequences[-1] = frame
+        return
+    
     def _get_pref_velocity(self, pos, goal, spd_limit):
         # get the preferred velocity of a pedestrian
         #
@@ -739,31 +751,32 @@ class Simulator(object):
         pedestrians_pos = np.array(self.pedestrians_pos)
         pedestrians_vel = np.array(self.pedestrians_vel)
 
+        boundaries = []
+
         if self.num_ped > 0:
             curr_frame.append(plt.scatter(pedestrians_pos[:, 0], pedestrians_pos[:, 1], c='r', s=25))
             if self.laser:
                 curr_frame.append(plt.scatter(self.laser_pos[:, 0], self.laser_pos[:, 1], c='b', s=1))
-                if self.group:
+                if self.group and self.paint_boundary:
                     boundaries = draw_all_social_spaces(self.laser_group_labels, 
                                                       self.laser_pos, 
                                                       self.laser_vel,
                                                       self.group_params['size_const'],
                                                       offset=self.ped_size)
-                else:
-                    boundaries = []
             else:
-                if self.group:
-                    boundaries = draw_all_social_spaces(self.group_labels, 
-                                                      pedestrians_pos, 
-                                                      pedestrians_vel,
-                                                      self.group_params['size_const'],
-                                                      offset=0)
-                else:
-                    boundaries = draw_all_social_spaces(self.pedestrians_idx,
-                                                      pedestrians_pos,
-                                                      pedestrians_vel,
-                                                      self.group_params['size_const'],
-                                                      offset=0)
+                if self.paint_boundary:
+                    if self.group:
+                        boundaries = draw_all_social_spaces(self.group_labels, 
+                                                        pedestrians_pos, 
+                                                        pedestrians_vel,
+                                                        self.group_params['size_const'],
+                                                        offset=0)
+                    else:
+                        boundaries = draw_all_social_spaces(self.pedestrians_idx,
+                                                        pedestrians_pos,
+                                                        pedestrians_vel,
+                                                        self.group_params['size_const'],
+                                                        offset=0)
             if len(boundaries) > 0:
                 for boundary in boundaries:
                     boundary.append(boundary[0])

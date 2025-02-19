@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import matplotlib.pyplot as plt
 
 from scipy import signal
 from sim.mpc.base_mpc import BaseMPC
@@ -79,6 +80,9 @@ class GroupNoPredMPC(BaseMPC):
 
             self.frame_predictions = [frame] * self.future_steps
             self.boundary_predictions = [group_boundary] * self.future_steps
+
+            if self.animate and (not self.paint_boundary):
+                self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
         else:
             self.frame_predictions = []
             self.boundary_predictions = []
@@ -143,7 +147,9 @@ class GroupNoPredMPC(BaseMPC):
     def evaluate_rollouts(self, mpc_weight=None):
         # Evaluate rollouts for MPC
         # Rollouts are NxTx2 arrays, where N is the number of rollouts, T is the number of time steps
-        # Predictions are MxTx2 arrays, where M is the number of pedesrtians, T is the number of time steps
+        # Predictions are an array of frames and an array of group boundaries coordinates
+        # The array of frames is TxHxW, where H is the height and W is the width
+        # The array of group boundaries is a list of TxNx2 arrays, where N is the number of groups
 
         if self.rollouts is None or self.frame_predictions is None:
             self.logger.error('Rollouts or predictions are not generated')
@@ -182,3 +188,18 @@ class GroupNoPredMPC(BaseMPC):
                 end_dist_cost = np.linalg.norm(self.robot_goal - self.rollouts[i, hit_idx - 1])
             self.rollout_costs[i] = min_dist_weight * min_dist_cost + end_dist_weight * end_dist_cost
         return
+    
+    def add_boundaries(self, frame):
+        # Add the boundaries to the frame for rendering
+        # This is outside the simulator, so paint-boundary need to stay off
+
+        if self.boundary_pts is None:
+            self.logger.error('Boundary points are not set')
+            raise ValueError('Boundary points are not set')
+        
+        for boundary in self.boundary_pts:
+            boundary.append(boundary[0])
+            boundary_pts = np.array(boundary)
+            boundary, = plt.plot(boundary_pts[:, 0], boundary_pts[:, 1], c='k', linewidth=1)
+            frame.append(boundary)
+        return frame

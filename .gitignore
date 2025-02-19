@@ -1,6 +1,7 @@
 data/
 exps/
 Python-RVO2/
+checkpoints/
 venv/
 sim/*_dataset/
 *.tar

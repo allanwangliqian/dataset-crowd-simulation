@@ -84,6 +84,10 @@ if __name__ == "__main__":
         while not done:
             action = agent.act(obs)
             obs, reward, done, info = sim.step(action)
+            if args.animate and not args.paint_boundary:
+                frame = sim.get_latest_render_frame()
+                frame = agent.add_boundaries(frame)
+                sim.update_latest_render_frame(frame)
         end_time = time()
         logger.info('Time spent: {}'.format(end_time - start_time))
         logger.info('Result: {}'.format(info))

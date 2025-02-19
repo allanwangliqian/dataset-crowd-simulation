@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 from sim.mpc.base_mpc import BaseMPC
 from sim.mpc.group import draw_social_shapes
@@ -333,9 +334,9 @@ class GroupEdgeMPC(BaseMPC):
 
         if not num_ped == 0:
             if self.laser:
-                edge_pos, _ = self.id_edge_pts_laser(robot_pos, history_pos, history_vel, group_ids, self.dt)
+                edge_pos, edge_vel = self.id_edge_pts_laser(robot_pos, history_pos, history_vel, group_ids, self.dt)
             else:
-                edge_pos, _ = self.id_edge_pts(robot_pos, history_pos, history_vel, group_ids)
+                edge_pos, edge_vel = self.id_edge_pts(robot_pos, history_pos, history_vel, group_ids)
             future_edge_pos = self.sgan.evaluate(edge_pos)
             future_edge_vel = np.zeros_like(future_edge_pos)
             future_edge_vel[:, 1:, :] = (future_edge_pos[:, 1:, :] - future_edge_pos[:, :-1, :]) / self.dt
@@ -347,11 +348,19 @@ class GroupEdgeMPC(BaseMPC):
                 # result is a Tx5Nx2 array. Each 5x2 array is [left, center, right, left_offset, right_offset]
                 # N is the number of groups
                 self.edge_predictions.append(self._vertices_from_edge_pts(robot_pos, 
-                                                                             future_edge_pos[:, i, :], 
-                                                                             future_edge_vel[:, i, :], 
-                                                                             self.boundary_const,
-                                                                             self.edge_offset,
-                                                                             self.offset))
+                                                                          future_edge_pos[:, i, :], 
+                                                                          future_edge_vel[:, i, :], 
+                                                                          self.boundary_const,
+                                                                          self.edge_offset,
+                                                                          self.offset))
+                
+            if self.animate and (not self.paint_boundary):
+                self.boundary_pts = self._vertices_from_edge_pts(robot_pos,
+                                                                 edge_pos[-1],
+                                                                 edge_vel[-1],
+                                                                 self.boundary_const,
+                                                                 self.edge_offset,
+                                                                 self.offset)
 
         return
     
@@ -477,7 +486,7 @@ class GroupEdgeMPC(BaseMPC):
     def evaluate_rollouts(self, mpc_weight=None):
         # Evaluate rollouts for MPC
         # Rollouts are NxTx2 arrays, where N is the number of rollouts, T is the number of time steps
-        # Predictions are MxTx2 arrays, where M is the number of pedesrtians, T is the number of time steps
+        # Predictions are Tx5Nx2 arrays, where N is the number of groups, T is the number of time steps
 
         if self.rollouts is None or self.edge_predictions is None:
             self.logger.error('Rollouts or predictions are not generated')
@@ -513,3 +522,27 @@ class GroupEdgeMPC(BaseMPC):
                 end_dist_cost = np.linalg.norm(self.robot_goal - self.rollouts[i, hit_idx - 1])
             self.rollout_costs[i] = min_dist_weight * min_dist_cost + end_dist_weight * end_dist_cost
         return
+    
+    def add_boundaries(self, frame):
+        # Add the boundaries to the frame for rendering
+        # This is outside the simulator, so paint-boundary need to stay off
+
+        if self.boundary_pts is None:
+            self.logger.error('Boundary points are not set')
+            raise ValueError('Boundary points are not set')
+        
+        key_pts = self.boundary_pts
+        num_pts = np.shape(key_pts)[0]
+        if not ((num_pts % 5) == 0):
+            raise Exception("num_pts not a multiplier of 5!")
+        num_pts = int(num_pts / 5)
+        for i in range(num_pts):
+            left_pt = key_pts[i * 5]
+            center_pt = key_pts[i * 5 + 1]
+            right_pt = key_pts[i * 5 + 2]
+            left_offset_pt = key_pts[i * 5 + 3]
+            right_offset_pt = key_pts[i * 5 + 4]
+            boundary_pts = np.array([left_pt, center_pt, right_pt, right_offset_pt, left_offset_pt, left_pt])
+            boundary, = plt.plot(boundary_pts[:, 0], boundary_pts[:, 1], c='k', linewidth=1)
+            frame.append(boundary)
+        return frame

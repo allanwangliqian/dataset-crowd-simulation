@@ -8,6 +8,11 @@ class BaseMPC(ABC):
     def __init__(self, args, logger):
         # MPC parameters
 
+        self.animate = args.animate
+        self.paint_boundary = args.paint_boundary
+        if self.animate and (not self.paint_boundary):
+            self.boundary_pts = None
+
         self.laser = args.laser
         self.differential = args.differential
 
@@ -163,6 +168,11 @@ class BaseMPC(ABC):
     @abstractmethod
     def evaluate_rollouts(self, mpc_weight=None):
         # Evaluate rollouts for MPC
+        pass
+
+    @abstractmethod
+    def add_boundaries(self, frame):
+        # Add boundaries to the frame for viaulizing boundaries
         pass
         
     def get_processing_time(self):

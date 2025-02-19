@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
+
+from sim.mpc.group import draw_all_social_spaces
 from sim.mpc.base_mpc import BaseMPC
 from sim.mpc.group import boundary_dist
 
@@ -28,6 +31,10 @@ class PedNoPredMPC(BaseMPC):
         self.boundary_const = obs['personal_size']
         self.pos_predictions = np.repeat(np.expand_dims(curr_pos, axis=1), self.future_steps, axis=1)
         self.vel_predictions = np.repeat(np.expand_dims(curr_vel, axis=1), self.future_steps, axis=1)
+
+        if self.animate and (not self.paint_boundary):
+            group_ids = list(range(len(curr_pos)))
+            self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
         return
     
     def _find_least_dist(self, config, points):
@@ -125,3 +132,18 @@ class PedNoPredMPC(BaseMPC):
                 end_dist_cost = np.linalg.norm(self.robot_goal - self.rollouts[i, hit_idx - 1])
             self.rollout_costs[i] = min_dist_weight * min_dist_cost + end_dist_weight * end_dist_cost
         return
+    
+    def add_boundaries(self, frame):
+        # Add the boundaries to the frame for rendering
+        # This is outside the simulator, so paint-boundary need to stay off
+
+        if self.boundary_pts is None:
+            self.logger.error('Boundary points are not set')
+            raise ValueError('Boundary points are not set')
+        
+        for boundary in self.boundary_pts:
+            boundary.append(boundary[0])
+            boundary_pts = np.array(boundary)
+            boundary, = plt.plot(boundary_pts[:, 0], boundary_pts[:, 1], c='k', linewidth=1)
+            frame.append(boundary)
+        return frame

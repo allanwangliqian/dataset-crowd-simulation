@@ -1,6 +1,7 @@
 import numpy as np
 
 from sim.mpc.group_nopred_mpc import GroupNoPredMPC
+from sim.mpc.group import draw_all_social_spaces
 from sgan.scripts.inference import SGANInference
 
 class GroupSGANMPC(GroupNoPredMPC):
@@ -25,6 +26,7 @@ class GroupSGANMPC(GroupNoPredMPC):
         # Get predictions for MPC
         # Linearly predict the future positions
         curr_pos = obs['pedestrians_pos']
+        curr_vel = obs['pedestrians_vel']
         history_pos = obs['pedestrians_pos_history']
         group_ids = obs['group_labels']
         self.dataset_info = obs['dataset_info']
@@ -44,5 +46,8 @@ class GroupSGANMPC(GroupNoPredMPC):
                 frame = self._get_frame(self.dataset_info, pos_predictions[:, i, :], vel_predictions[:, i, :], group_ids, self.boundary_const)
                 self.frame_predictions.append(frame)
                 self.boundary_predictions.append(self._frame_to_vertices(self.dataset_info, frame))
+
+            if self.animate and (not self.paint_boundary):
+                self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
 
         return

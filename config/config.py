@@ -129,6 +129,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--paint-boundary",
+        action='store_true',
+        default=False,
+        help="turn off to paint boundary externaly of the simulator"
+    )
+
+    parser.add_argument(
         "--edge-offset",
         type=float,
         default=1.0,

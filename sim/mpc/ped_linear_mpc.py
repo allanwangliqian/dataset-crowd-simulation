@@ -1,5 +1,6 @@
 import numpy as np
 from sim.mpc.ped_nopred_mpc import PedNoPredMPC
+from sim.mpc.group import draw_all_social_spaces
 
 class PedLinearMPC(PedNoPredMPC):
     # MPC class for Pedestrian-based representation with linear prediction
@@ -28,4 +29,8 @@ class PedLinearMPC(PedNoPredMPC):
             for i in range(self.future_steps):
                 self.pos_predictions[:, i, :] = curr_pos + curr_vel * (i + 1) * self.dt
                 self.vel_predictions[:, i, :] = curr_vel
+
+            if self.animate and (not self.paint_boundary):
+                group_ids = list(range(len(curr_pos)))
+                self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
         return

@@ -1,6 +1,7 @@
 import numpy as np
 
 from sim.mpc.group_nopred_mpc import GroupNoPredMPC
+from sim.mpc.group import draw_all_social_spaces
 from sim.mpc.group_shape_prediction import GroupShapePrediction
 
 class GroupLinearMPC(GroupNoPredMPC):
@@ -36,5 +37,8 @@ class GroupLinearMPC(GroupNoPredMPC):
 
             for frame in self.frame_predictions:
                 self.boundary_predictions.append(self._frame_to_vertices(self.dataset_info, frame))
+
+            if self.animate and (not self.paint_boundary):
+                self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
 
         return

@@ -1,6 +1,7 @@
 import numpy as np
 from sim.mpc.ped_nopred_mpc import PedNoPredMPC
 from sgan.scripts.inference import SGANInference
+from sim.mpc.group import draw_all_social_spaces
 
 class PedSGANMPC(PedNoPredMPC):
     # MPC class for Pedestrian-based representation with SGAN prediction
@@ -24,6 +25,7 @@ class PedSGANMPC(PedNoPredMPC):
         # Get predictions for MPC
         # Linearly predict the future positions
         curr_pos = obs['pedestrians_pos']
+        curr_vel = obs['pedestrians_vel']
         history_pos = obs['pedestrians_pos_history']
         self.boundary_const = obs['personal_size']
         num_ped = len(curr_pos)
@@ -35,4 +37,8 @@ class PedSGANMPC(PedNoPredMPC):
             self.vel_predictions = np.zeros_like(self.pos_predictions)
             self.vel_predictions[:, 1:, :] = (self.pos_predictions[:, 1:, :] - self.pos_predictions[:, :-1, :]) / self.dt
             self.vel_predictions[:, 0, :] = (self.pos_predictions[:, 0, :] - curr_pos) / self.dt
+
+            if self.animate and (not self.paint_boundary):
+                group_ids = list(range(len(curr_pos)))
+                self.boundary_pts = draw_all_social_spaces(group_ids, curr_pos, curr_vel, self.boundary_const, self.offset)
         return
