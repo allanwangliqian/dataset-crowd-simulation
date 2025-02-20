@@ -625,7 +625,7 @@ class Simulator(object):
             self.done = True
             self.fail_reason = "Time"
             self.logger.info("Time limit exceeded. Terminating episode.")
-        elif (self.num_ped > 0):
+        if (self.num_ped > 0):
             ped_dists = np.linalg.norm(self.robot_pos - np.array(self.pedestrians_pos), axis=1)
             if (np.min(ped_dists) < self.collision_radius):
                 # If the pedestrian just spawned within ghost time, then it is ok.
@@ -636,7 +636,7 @@ class Simulator(object):
                     self.done = True
                     self.fail_reason = "Collision"
                     self.logger.info("Collision detected. Terminating episode.")
-        elif np.linalg.norm(self.robot_pos - self.goal_pos) < self.goal_radius:
+        if np.linalg.norm(self.robot_pos - self.goal_pos) < self.goal_radius:
             self.done = True
             self.logger.info("Goal reached.")
 
