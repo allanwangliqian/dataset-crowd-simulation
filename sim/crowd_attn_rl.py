@@ -150,10 +150,12 @@ class CrowdAttnRL(object):
         robot_node[0, 0, 6] = robot_theta
         obs_rl['robot_node'] = robot_node
 
-        spatial_edges = np.zeros((1, self.human_num, (self.predict_steps + 1) * 2))
+        spatial_edges = np.zeros((1, self.human_num, (self.predict_steps + 1) * 2)) + np.inf
         for i in range(num_ped):
-            spatial_edges[0, i, 0:2] = curr_pos[i]
-            spatial_edges[0, i, 2:] = pos_predictions[i].flatten()
+            spatial_edges[0, i, 0:2] = curr_pos[i] - robot_pos
+            pos_rel_predictions = pos_predictions[i] - robot_pos
+            spatial_edges[0, i, 2:] = pos_rel_predictions.flatten()
+        spatial_edges[np.isinf(spatial_edges)] = 15
         obs_rl['spatial_edges'] = torch.tensor(spatial_edges, device=self.device)
 
         temporal_edges = torch.zeros((1, 1, 2), device=self.device)
