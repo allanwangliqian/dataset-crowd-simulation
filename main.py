@@ -49,7 +49,7 @@ if __name__ == "__main__":
     args.envs = envs_arg
 
     results = []
-    sim = Simulator(args, 'data/all.json', logger)
+    sim = Simulator(args, 'data/ucy_2.json', logger)
     obs = sim.reset()
     dataset_info = obs['dataset_info']
     while not (obs is None):

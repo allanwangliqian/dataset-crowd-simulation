@@ -111,7 +111,7 @@ def boundary_dist(velocity, rel_ang, const=0.354163, offset=0):
     dist = np.sqrt(const / ((np.cos(rel_ang) ** 2 / (2 * prev_variance)) + (np.sin(rel_ang) ** 2 / (2 * next_variance))))
     dist = max(safety_dist, dist)
     
-    dist = max(dist - offset, 1e-9) # Avoid negative distance
+    dist = max(dist - offset, 1e-4) # Avoid negative distance
 
     return dist
 

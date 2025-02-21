@@ -13,3 +13,4 @@ pyyaml
 pandas
 setuptools
 six
+gym
