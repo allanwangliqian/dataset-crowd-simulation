@@ -154,6 +154,7 @@ class CrowdAttnRL(object):
         for i in range(num_ped):
             spatial_edges[0, i, 0:2] = curr_pos[i] - robot_pos
             pos_rel_predictions = pos_predictions[i] - robot_pos
+            pos_rel_predictions = pos_rel_predictions[:self.predict_steps, :]
             spatial_edges[0, i, 2:] = pos_rel_predictions.flatten()
         spatial_edges[np.isinf(spatial_edges)] = 15
         obs_rl['spatial_edges'] = torch.tensor(spatial_edges, device=self.device)
