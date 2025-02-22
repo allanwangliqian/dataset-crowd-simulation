@@ -53,7 +53,7 @@ if __name__ == "__main__":
     args.envs = envs_arg
 
     # DANGER!!! temporarily configure args
-    args.rl = False
+    args.rl = True
     if not args.rl:
         args.group = True
         args.react = False
@@ -65,9 +65,20 @@ if __name__ == "__main__":
         args.history = True
         args.future_steps = 8
         args.differential = False
+    else:
+        args.group = False
+        args.react = False
+        args.laser = False
+        args.edge = False
+        args.record = True
+        args.animate = True
+        args.paint_boundary = True
+        args.history = True
+        args.future_steps = 5
+        args.differential = False
     
-    sim = Simulator(args, 'data/ucy_1.json', logger)
-    obs = sim.reset(172)
+    sim = Simulator(args, 'data/ucy_2.json', logger)
+    obs = sim.reset(189)
     dataset_info = obs['dataset_info']
     # agent = PedNoPredMPC(args, logger)
     # agent = PedLinearMPC(args, logger)
@@ -76,8 +87,8 @@ if __name__ == "__main__":
     # agent = GroupLinearMPC(args, logger, dataset_info)
     # agent = GroupSGANMPC(args, logger, dataset_info, 'sgan/models/sgan-models/eth_8_model.pt')
     # agent = GroupConvMPC(args, logger, dataset_info, 'checkpoints/model_conv_0.pth')
-    agent = GroupEdgeMPC(args, logger, dataset_info, 'sgan/models/sgan-models/zara2_8_model.pt')
-    # agent = CrowdAttnRL(args, logger, 'sgan/models/sgan-models/univ_8_model.pt', './crowdattn/trained_models/GST_predictor_rand')
+    # agent = GroupEdgeMPC(args, logger, dataset_info, 'sgan/models/sgan-models/zara2_8_model.pt')
+    agent = CrowdAttnRL(args, logger, 'sgan/models/sgan-models/univ_8_model.pt', './crowdattn/trained_models/GST_predictor_rand')
 
     done = False
     start_time = time()

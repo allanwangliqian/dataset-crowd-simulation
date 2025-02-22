@@ -247,7 +247,7 @@ def get_args():
     parser.add_argument(
         "--rl",
         action='store_true',
-        default=False,
+        default=True,
         help="use crowdattn-rl as the agent"
     )
 
@@ -289,22 +289,6 @@ def check_args(args, logger):
         logger.info("GPU disabled")
         logger.error("GPU is required for this simulator")
         raise Exception("GPU is required for this simulator")
-    
-    if args.rl:
-        args.pred = True
-        args.pred_method = "sgan"
-        args.history = True
-        args.future_steps = 5
-        args.group = False
-        args.edge = False
-        args.laser = False
-        logger.info("Crowd attention RL enabled, the following settings are set automatically")
-        logger.info("Prediction method: SGAN")
-        logger.info("History enabled")
-        logger.info("Future steps: 5")
-        logger.info("Grouping disabled")
-        logger.info("Edge grouping disabled")
-        logger.info("Simulated lidar disabled")
 
     if args.pred:
         

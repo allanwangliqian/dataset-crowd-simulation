@@ -19,16 +19,11 @@ if __name__ == "__main__":
     # configue and logs
     args = get_args()
 
-    if args.rl:
-        sys.path.append('crowdattn')
-        from sim.crowd_attn_rl import CrowdAttnRL
-        args.output_dir = 'exps/02-22-rl-react'
-        args.react = True
-
     if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+        logging.error("Output directory does not exist")
+        raise ValueError("Output directory does not exist")
 
-    log_fname = os.path.join(args.output_dir, 'experiment.log')
+    log_fname = os.path.join(args.output_dir, 'retry-experiment.log')
     file_handler = logging.FileHandler(log_fname, mode='w')
     stdout_handler = logging.StreamHandler(sys.stdout)
     level = logging.INFO
@@ -56,13 +51,23 @@ if __name__ == "__main__":
 
     results = []
     sim = Simulator(args, 'data/all.json', logger)
-    obs = sim.reset()
-    dataset_info = obs['dataset_info']
-    while not (obs is None):
+
+    old_resuts = []
+    with open(os.path.join(args.output_dir, "results.pickle"), "rb") as fp:
+        old_results = pickle.load(fp)
+    retry_list = []
+    for i, rst in enumerate(old_results):
+        if not rst['result']['success']:
+            retry_list.append(i)
+    
+    for idx in retry_list:
+
+        obs = sim.reset(idx)
         case_info = sim.get_case_info()
+        dataset_info = obs['dataset_info']
 
         # set up the prediction model checkpoint path
-        if (args.pred_method == 'sgan') or (args.pred_method == 'edge') or (args.rl == True):
+        if (args.pred_method == 'sgan') or (args.pred_method == 'edge'):
             if (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 0):
                 sgan_model_path = "sgan/models/sgan-models/eth_" + str(args.future_steps) + "_model.pt"
             elif (case_info['env_name'] == 'eth') and (case_info['env_flag'] == 1):
@@ -120,15 +125,10 @@ if __name__ == "__main__":
                     logger.error('Prediction method is not supported')
                     raise ValueError('Prediction method is not supported')
                 
-        if args.rl:
-            args.future_steps = 5
-            agent = CrowdAttnRL(args, logger, sgan_model_path, 'crowdattn/trained_models/GST_predictor_rand')
-            args.future_steps = 8
-                
         done = False
         start_time = time()
         while not done:
-            action = agent.act(obs, done)
+            action = agent.act(obs)
             obs, reward, done, info = sim.step(action)
             if args.animate and not args.paint_boundary:
                 frame = sim.get_latest_render_frame()
@@ -144,10 +144,8 @@ if __name__ == "__main__":
         rst['state_time'] = state_time
         rst['eval_time'] = eval_time
 
-        result_info = {'history': history, 'result': rst}
+        result_info = {'case': case_info, 'history': history, 'result': rst}
         results.append(result_info)
 
-        with open(os.path.join(args.output_dir, "results.pickle"), "wb") as fp:
+        with open(os.path.join(args.output_dir, "retry-results.pickle"), "wb") as fp:
             pickle.dump(results, fp)
-
-        obs = sim.reset()

@@ -386,6 +386,7 @@ class Simulator(object):
                     # if we have reached the end of the list, then we are done
                     return None
         else:
+            self.case_pt = case_id
             case = self.case_list[case_id]
 
         self.logger.info("Case {} of {}".format(self.case_pt, len(self.case_list)))
