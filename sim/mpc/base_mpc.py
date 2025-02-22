@@ -182,7 +182,7 @@ class BaseMPC(ABC):
         else:
             return np.mean(self.state_time), np.mean(self.eval_time)
 
-    def act(self, obs):
+    def act(self, obs, done=False):
         # Produce action based on observation for the MPC
         # Inputs:
         # obs: the observation

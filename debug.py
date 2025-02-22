@@ -4,6 +4,8 @@ import yaml
 import numpy as np
 from time import time
 
+sys.path.append('crowdattn')
+
 from config.config import get_args, check_args
 from sim.simulator import Simulator
 from sim.mpc.ped_nopred_mpc import PedNoPredMPC
@@ -14,8 +16,10 @@ from sim.mpc.group_linear_mpc import GroupLinearMPC
 from sim.mpc.group_sgan_mpc import GroupSGANMPC
 from sim.mpc.group_conv_mpc import GroupConvMPC
 from sim.mpc.group_edge_mpc import GroupEdgeMPC
+from sim.crowd_attn_rl import CrowdAttnRL
 
 if __name__ == "__main__":
+
     # configue and logs
     args = get_args()
 
@@ -49,16 +53,21 @@ if __name__ == "__main__":
     args.envs = envs_arg
 
     # DANGER!!! temporarily configure args
-    args.group = True
-    args.react = True
-    args.laser = True
-    args.record = True
-    args.animate = True
-    args.history = True
-    args.differential = False
+    args.rl = False
+    if not args.rl:
+        args.group = True
+        args.react = False
+        args.laser = True
+        args.edge = True
+        args.record = True
+        args.animate = True
+        args.paint_boundary = False
+        args.history = True
+        args.future_steps = 8
+        args.differential = False
     
-    sim = Simulator(args, 'data/ucy_2.json', logger)
-    obs = sim.reset(0)
+    sim = Simulator(args, 'data/ucy_1.json', logger)
+    obs = sim.reset(172)
     dataset_info = obs['dataset_info']
     # agent = PedNoPredMPC(args, logger)
     # agent = PedLinearMPC(args, logger)
@@ -67,12 +76,13 @@ if __name__ == "__main__":
     # agent = GroupLinearMPC(args, logger, dataset_info)
     # agent = GroupSGANMPC(args, logger, dataset_info, 'sgan/models/sgan-models/eth_8_model.pt')
     # agent = GroupConvMPC(args, logger, dataset_info, 'checkpoints/model_conv_0.pth')
-    agent = GroupEdgeMPC(args, logger, dataset_info, 'sgan/models/sgan-models/eth_8_model.pt')
+    agent = GroupEdgeMPC(args, logger, dataset_info, 'sgan/models/sgan-models/zara2_8_model.pt')
+    # agent = CrowdAttnRL(args, logger, 'sgan/models/sgan-models/univ_8_model.pt', './crowdattn/trained_models/GST_predictor_rand')
 
     done = False
     start_time = time()
     while not done:
-        action = agent.act(obs)
+        action = agent.act(obs, done)
         obs, reward, done, info = sim.step(action)
         if args.animate and not args.paint_boundary:
             frame = sim.get_latest_render_frame()

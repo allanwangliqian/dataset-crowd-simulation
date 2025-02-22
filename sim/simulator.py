@@ -203,44 +203,45 @@ class Simulator(object):
         ang = 0
          # Iterate over laser angles
         while ang < (2 * np.pi):
-            # Skip angles where tan(ang) might be unstable
             if not (ang % (np.pi / 2) == 0):
-                # Compute coefficients in vectorized manner
-                diff = ped_pos - robo_pos  # shape: (num_ped, 2)
-                a_vals = diff[:, 0]
-                b_vals = diff[:, 1]
-                
-                tan_ang = np.tan(ang)
-                A = 1 + tan_ang ** 2
-                B = -2 * (a_vals + b_vals * tan_ang)
-                C = a_vals**2 + b_vals**2 - r_sq
-                
-                # Compute discriminant for all pedestrians
-                disc = B**2 - 4 * A * C
-                valid = disc >= 0
-                if valid.any():
-                    sqrt_disc = np.sqrt(disc[valid])
-                    x1 = (-B[valid] - sqrt_disc) / (2 * A)
-                    x2 = (-B[valid] + sqrt_disc) / (2 * A)
-                    y1 = x1 * tan_ang
-                    y2 = x2 * tan_ang
-                    mag1 = np.sqrt(x1 ** 2 + y1 ** 2)
-                    mag2 = np.sqrt(x2 ** 2 + y2 ** 2)
-                    # Choose the closer hit for each pedestrian
-                    dist = np.where(mag1 < mag2, mag1, mag2)
-                    hit_x = np.where(mag1 < mag2, x1, x2)
-                    hit_y = np.where(mag1 < mag2, y1, y2)
-                    
-                    # Find the pedestrian with the minimum distance along the ray
-                    min_idx = np.argmin(dist)
-                    min_dist = dist[min_idx]
-                    if min_dist < det_range:
-                        # Inject noise
+                min_dist = det_range
+                laser_x = None
+                laser_y = None 
+                min_idx = None
+                for i in range(num_ped):
+                    a = ped_pos[i][0] - robo_pos[0]
+                    b = ped_pos[i][1] - robo_pos[1]
+                    A = 1 + np.tan(ang) ** 2
+                    B = -2 * (a + b * np.tan(ang))
+                    C = a ** 2 + b ** 2 - r_sq
+                    check_root = round(B ** 2 - 4 * A * C, 12)
+                    if check_root >= 0:
+                        x1 = (-B - np.sqrt(check_root)) / (2 * A)
+                        y1 = x1 * np.tan(ang)
+                        x2 = (-B + np.sqrt(check_root)) / (2 * A)
+                        y2 = x2 * np.tan(ang)
+                        mag1 = np.sqrt(x1 ** 2 + y1 ** 2)
+                        mag2 = np.sqrt(x2 ** 2 + y2 ** 2)
+                        if mag1 < mag2:
+                            append_x = x1
+                            append_y = y1
+                            dist = mag1
+                        else:
+                            append_x = x2
+                            append_y = y2
+                            dist = mag2
                         noise = np.random.uniform(-noise_limit, noise_limit)
-                        hit_x = hit_x[min_idx] + noise * np.cos(ang)
-                        hit_y = hit_y[min_idx] + noise * np.sin(ang)
-                        laser_pos.append([hit_x + robo_pos[0], hit_y + robo_pos[1]])
-                        laser_vel.append(ped_vel[min_idx])
+                        append_x += noise * np.cos(ang)
+                        append_y += noise * np.sin(ang)
+                        if dist < min_dist:
+                            min_dist = dist
+                            min_idx = i
+                            laser_x = append_x + robo_pos[0]
+                            laser_y = append_y + robo_pos[1]
+                if not (laser_x == None):
+                    laser_pos.append([laser_x, laser_y])
+                    laser_vel.append([ped_vel[min_idx][0], ped_vel[min_idx][1]]) 
+
             ang += ang_res
         return np.array(laser_pos), np.array(laser_vel)
 
@@ -742,6 +743,13 @@ class Simulator(object):
         self.logger.info("Video saved at {}.".format(video_path))
         return
     
+    def _plot_velocities(self, frame, pos_x, pos_y, v_x, v_y, color, linewidth=1):
+        # plot the velocities of the entities
+        for i in range(len(pos_x)):
+            plot, = plt.plot([pos_x[i], pos_x[i] + v_x[i]], [pos_y[i], pos_y[i] + v_y[i]], c=color, linewidth=linewidth)
+            frame.append(plot)
+        return frame
+    
     def render(self):
         # render the current frame
 
@@ -757,8 +765,14 @@ class Simulator(object):
 
         if self.num_ped > 0:
             curr_frame.append(plt.scatter(pedestrians_pos[:, 0], pedestrians_pos[:, 1], c='r', s=25))
+            idxes = np.where(np.linalg.norm(pedestrians_vel, axis=1) > 0.5)[0]
+            curr_frame = self._plot_velocities(curr_frame, pedestrians_pos[idxes, 0], pedestrians_pos[idxes, 1],
+                                            pedestrians_vel[idxes, 0], pedestrians_vel[idxes, 1], 'r')
             if self.laser:
                 curr_frame.append(plt.scatter(self.laser_pos[:, 0], self.laser_pos[:, 1], c='b', s=1))
+                idxes = np.where(np.linalg.norm(self.laser_vel, axis=1) > 0.5)[0]
+                curr_frame = self._plot_velocities(curr_frame, self.laser_pos[idxes, 0], self.laser_pos[idxes, 1],
+                                                self.laser_vel[idxes, 0], self.laser_vel[idxes, 1], 'b')
                 if self.group and self.paint_boundary:
                     boundaries = draw_all_social_spaces(self.laser_group_labels, 
                                                       self.laser_pos, 

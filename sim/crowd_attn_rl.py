@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import gym
 import os
+from time import time
 
 from crowdattn.rl.networks.model import Policy
 from sgan.scripts.inference import SGANInference
@@ -36,7 +37,7 @@ class CrowdAttnRL(object):
             model_arguments = import_module(model_dir_string)
             get_args = getattr(model_arguments, 'get_args')
         except:
-            print('Failed to get get_args function from ', model_dir, '/arguments.py')
+            self.logger.warning('Failed to get get_args function from ', model_dir, '/arguments.py')
             from crowdattn.arguments import get_args
 
         algo_args = get_args()
@@ -64,6 +65,7 @@ class CrowdAttnRL(object):
 			base='selfAttn_merge_srnn')
         self.actor_critic.load_state_dict(torch.load(load_path, map_location=self.device))
         self.actor_critic.base.nenv = 1
+        self.actor_critic.to(self.device)
 
         self.eval_recurrent_hidden_states = {}
 
@@ -78,6 +80,9 @@ class CrowdAttnRL(object):
         self.eval_masks = torch.zeros(self.num_processes, 1, device=self.device)
 
         self.logger.info('RL setup complete. Loaded model from {}'.format(load_path))
+
+        self.state_time = []
+        self.eval_time = []
 
         return
     
@@ -140,14 +145,14 @@ class CrowdAttnRL(object):
             pos_predictions = []
 
         obs_rl = {}
-        robot_node = torch.zeros((1, 1, 7), device=self.device)
-        robot_node[0, 0, 0] = robot_pos[0]
-        robot_node[0, 0, 1] = robot_pos[1]
+        robot_node = torch.zeros((1, 1, 7), dtype=torch.float32, device=self.device)
+        robot_node[0, 0, 0] = float(robot_pos[0])
+        robot_node[0, 0, 1] = float(robot_pos[1])
         robot_node[0, 0, 2] = 0.3
-        robot_node[0, 0, 3] = robot_goal[0]
-        robot_node[0, 0, 4] = robot_goal[1]
+        robot_node[0, 0, 3] = float(robot_goal[0])
+        robot_node[0, 0, 4] = float(robot_goal[1])
         robot_node[0, 0, 5] = self.robot_speed
-        robot_node[0, 0, 6] = robot_theta
+        robot_node[0, 0, 6] = float(robot_theta)
         obs_rl['robot_node'] = robot_node
 
         spatial_edges = np.zeros((1, self.human_num, (self.predict_steps + 1) * 2)) + np.inf
@@ -155,21 +160,21 @@ class CrowdAttnRL(object):
             spatial_edges[0, i, 0:2] = curr_pos[i] - robot_pos
             pos_rel_predictions = pos_predictions[i] - robot_pos
             pos_rel_predictions = pos_rel_predictions[:self.predict_steps, :]
-            spatial_edges[0, i, 2:] = pos_rel_predictions.flatten()
+            spatial_edges[0, i, 2:] = torch.tensor(pos_rel_predictions.flatten())
         spatial_edges[np.isinf(spatial_edges)] = 15
-        obs_rl['spatial_edges'] = torch.tensor(spatial_edges, device=self.device)
+        obs_rl['spatial_edges'] = torch.tensor(spatial_edges, dtype=torch.float32, device=self.device)
 
-        temporal_edges = torch.zeros((1, 1, 2), device=self.device)
-        temporal_edges[0, 0, 0] = robot_vel[0]
-        temporal_edges[0, 0, 1] = robot_vel[1]
+        temporal_edges = torch.zeros((1, 1, 2), dtype=torch.float32, device=self.device)
+        temporal_edges[0, 0, 0] = float(robot_vel[0])
+        temporal_edges[0, 0, 1] = float(robot_vel[1])
         obs_rl['temporal_edges'] = temporal_edges
 
-        visibile_masks = torch.zeros((1, self.human_num), device=self.device)
+        visibile_masks = torch.zeros((1, self.human_num), dtype=torch.float32, device=self.device)
         visibile_masks[0, :num_ped] = 1
         visibile_masks = visibile_masks.bool()
         obs_rl['visible_masks'] = visibile_masks
 
-        detected_human_num = torch.zeros((1, 1), device=self.device)
+        detected_human_num = torch.zeros((1, 1), dtype=torch.float32, device=self.device)
         detected_human_num[0, 0] = num_ped
         obs_rl['detected_human_num'] = detected_human_num
 
@@ -177,7 +182,11 @@ class CrowdAttnRL(object):
     
     def act(self, obs, done=False):
         # Given an observation, return an action
+        state_time_start = time()
         obs_rl = self.convert_observation(obs)
+        state_time_end = time()
+
+        eval_time_start = time()
         with torch.no_grad():
             _, action, _, self.eval_recurrent_hidden_states = self.actor_critic.act(
                 obs_rl,
@@ -191,10 +200,21 @@ class CrowdAttnRL(object):
         if act_norm > v_pref:
             action[0] = action[0] / act_norm * v_pref
             action[1] = action[1] / act_norm * v_pref
+        eval_time_end = time()
 
         done = [done]
         self.eval_masks = torch.tensor(
                 [[0.0] if done_ else [1.0] for done_ in done],
                 dtype=torch.float32,
                 device=self.device)
+        
+        self.state_time.append(state_time_end - state_time_start)
+        self.eval_time.append(eval_time_end - eval_time_start)
         return action
+    
+    def get_processing_time(self):
+        # Get processing time for MPC
+        if len(self.state_time) == 0 or len(self.eval_time) == 0:
+            return None, None
+        else:
+            return np.mean(self.state_time), np.mean(self.eval_time)

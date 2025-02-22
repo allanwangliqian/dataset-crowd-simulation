@@ -54,6 +54,11 @@ def grouping(position_array, velocity_array, params):
     num_people = len(position_array)
     if num_people == 0:
         return []
+    
+    # vel_magnitude_array = np.linalg.norm(velocity_array, axis=1)
+    # not_valid_vel_idxes = np.where(vel_magnitude_array > params['spd_ignore'])[0]
+    # vel_magnitude_array[not_valid_vel_idxes] = 0.0
+    # vel_orientation_array = np.where(vel_magnitude_array > params['spd_ignore'], velocity_array / vel_magnitude_array[:, None], (0.0, 0.0))
 
     vel_orientation_array = []
     vel_magnitude_array = []

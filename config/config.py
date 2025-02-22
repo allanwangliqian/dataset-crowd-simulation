@@ -333,7 +333,7 @@ def check_args(args, logger):
             logger.error("SGAN prediction does not support simulated lidar")
             raise Exception("SGAN prediction does not support simulated lidar")
         
-        if (args.pred_method == "sgan") and not((args.future_steps == 8) or (args.future_steps == 12)):
+        if (args.pred_method == "sgan") and not((args.future_steps == 8) or (args.future_steps == 12)) and (not args.rl):
             logger.error("SGAN prediction requires 8 or 12 future steps")
             raise Exception("SGAN prediction requires 8 or 12 future steps")
         
