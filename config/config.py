@@ -247,7 +247,7 @@ def get_args():
     parser.add_argument(
         "--rl",
         action='store_true',
-        default=True,
+        default=False,
         help="use crowdattn-rl as the agent"
     )
 

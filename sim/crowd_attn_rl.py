@@ -132,16 +132,20 @@ class CrowdAttnRL(object):
         robot_theta = obs['robot_th']
 
         curr_pos = obs['pedestrians_pos']
-        dists = np.linalg.norm(curr_pos - robot_pos, axis=1)
-        sorted_idx = np.argsort(dists)
-        curr_pos = curr_pos[sorted_idx]
-        history_pos = obs['pedestrians_pos_history']
         actual_num_ped = len(curr_pos)
         num_ped = min(self.human_num, actual_num_ped)
+        
         if actual_num_ped > 0:
+            has_ped = True
+            dists = np.linalg.norm(curr_pos - robot_pos, axis=1)
+            sorted_idx = np.argsort(dists)
+            curr_pos = curr_pos[sorted_idx]
+            history_pos = obs['pedestrians_pos_history']
+        
             pos_predictions = self.sgan.evaluate(history_pos)
             pos_predictions = pos_predictions[sorted_idx]
         else:
+            has_ped = False
             pos_predictions = []
 
         obs_rl = {}
@@ -178,12 +182,21 @@ class CrowdAttnRL(object):
         detected_human_num[0, 0] = num_ped
         obs_rl['detected_human_num'] = detected_human_num
 
-        return obs_rl
+        return obs_rl, has_ped
     
     def act(self, obs, done=False):
         # Given an observation, return an action
         state_time_start = time()
-        obs_rl = self.convert_observation(obs)
+        obs_rl, has_ped = self.convert_observation(obs)
+        if has_ped == False:
+            robot_goal = obs['robot_goal']
+            robot_pos = obs['robot_pos']
+            robot_speed = self.robot_speed
+            action = robot_goal - robot_pos
+            act_norm = np.linalg.norm(action)
+            action[0] = action[0] / act_norm * robot_speed
+            action[1] = action[1] / act_norm * robot_speed
+            return action
         state_time_end = time()
 
         eval_time_start = time()

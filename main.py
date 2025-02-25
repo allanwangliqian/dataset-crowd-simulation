@@ -22,8 +22,8 @@ if __name__ == "__main__":
     if args.rl:
         sys.path.append('crowdattn')
         from sim.crowd_attn_rl import CrowdAttnRL
-        args.output_dir = 'exps/02-22-rl-react'
-        args.react = True
+        args.output_dir = 'exps/02-25-rl-sgan'
+        args.react = False
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -60,6 +60,10 @@ if __name__ == "__main__":
     dataset_info = obs['dataset_info']
     while not (obs is None):
         case_info = sim.get_case_info()
+        # if (case_info['env_name'] == 'ucy') and (case_info['env_flag'] == 2):
+        #     logger.info('Skipping Univ dataset')
+        #     obs = sim.reset()
+        #     continue
 
         # set up the prediction model checkpoint path
         if (args.pred_method == 'sgan') or (args.pred_method == 'edge') or (args.rl == True):
@@ -122,7 +126,7 @@ if __name__ == "__main__":
                 
         if args.rl:
             args.future_steps = 5
-            agent = CrowdAttnRL(args, logger, sgan_model_path, 'crowdattn/trained_models/GST_predictor_rand')
+            agent = CrowdAttnRL(args, logger, sgan_model_path, 'crowdattn/trained_models/custom_sgan_model', ckpt='40400.pt')
             args.future_steps = 8
                 
         done = False
@@ -144,7 +148,7 @@ if __name__ == "__main__":
         rst['state_time'] = state_time
         rst['eval_time'] = eval_time
 
-        result_info = {'history': history, 'result': rst}
+        result_info = {'case': case_info, 'history': history, 'result': rst}
         results.append(result_info)
 
         with open(os.path.join(args.output_dir, "results.pickle"), "wb") as fp:
