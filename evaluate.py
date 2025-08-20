@@ -61,6 +61,7 @@ if __name__ == "__main__":
     avg_eval_time = np.mean(eval_time)
     std_eval_time = np.std(eval_time)
 
+    print("Num cases: {}".format(num_cases))
     print("Success rate: {:.2f}".format(success_rate))
     print("Navigation time - mean: {:.2f} std: {:.2f}".format(avg_navigation_time, std_navigation_time))
     print("Path length - mean: {:.2f} std: {:.2f}".format(avg_path_length, std_path_length))

@@ -368,7 +368,7 @@ class GroupEdgeMPC(BaseMPC):
         # Line is defined by two points p1 and p2
 
         dp = p2 - p1
-        st = dp[0] ** 2 + dp[1] ** 2
+        st = dp[0] ** 2 + dp[1] ** 2 + 0.0001
         u = ((target_pt[0] - p1[0]) * dp[0] + (target_pt[1] - p1[1]) * dp[1]) / st
         if u > 1:
             u = 1
@@ -386,26 +386,40 @@ class GroupEdgeMPC(BaseMPC):
             raise Exception("num_pts not a multiplier of 5!")
         num_pts = int(num_pts / 5)
         min_dist = np.inf
+        min_poly_idx = -1
         for i in range(num_pts):
-            left_pt = key_pts[i * 5]
-            center_pt = key_pts[i * 5 + 1]
-            right_pt = key_pts[i * 5 + 2]
-            left_offset_pt = key_pts[i * 5 + 3]
-            right_offset_pt = key_pts[i * 5 + 4]
+            # left_pt = key_pts[i * 5]
+            # center_pt = key_pts[i * 5 + 1]
+            # right_pt = key_pts[i * 5 + 2]
+            # left_offset_pt = key_pts[i * 5 + 3]
+            # right_offset_pt = key_pts[i * 5 + 4]
+            test_key_pts = key_pts[i * 5: i * 5 + 5]
             if shape == "line":
-                dist1 = self._dist_pt_line(center_pt, left_pt, target_pt)
-                dist2 = self._dist_pt_line(left_pt, left_offset_pt, target_pt)
-                dist3 = self._dist_pt_line(left_offset_pt, right_offset_pt, target_pt)
-                dist4 = self._dist_pt_line(right_offset_pt, right_pt, target_pt)
-                dist5 = self._dist_pt_line(right_pt, center_pt,  target_pt)
-                min_dist_test = np.min([dist1, dist2, dist3, dist4, dist5])
+                # Only need to check with the closest point and 2 neighboring edges
+                tmp = test_key_pts[3]
+                test_key_pts[3] = test_key_pts[4]
+                test_key_pts[4] = tmp
+                min_idx = np.argmin(np.linalg.norm(test_key_pts - target_pt, axis=1))
+                min_pt_1 = test_key_pts[min_idx]
+                min_pt_2 = test_key_pts[(min_idx + 1) % 5]
+                min_pt_3 = test_key_pts[(min_idx - 1) % 5]
+                min_dist_test_1 = self._dist_pt_line(min_pt_1, min_pt_2, target_pt)
+                min_dist_test_2 = self._dist_pt_line(min_pt_1, min_pt_3, target_pt)
+                min_dist_test = np.min([min_dist_test_1, min_dist_test_2])
+                # dist1 = self._dist_pt_line(center_pt, left_pt, target_pt)
+                # dist2 = self._dist_pt_line(left_pt, left_offset_pt, target_pt)
+                # dist3 = self._dist_pt_line(left_offset_pt, right_offset_pt, target_pt)
+                # dist4 = self._dist_pt_line(right_offset_pt, right_pt, target_pt)
+                # dist5 = self._dist_pt_line(right_pt, center_pt,  target_pt)
+                # min_dist_test = np.min([dist1, dist2, dist3, dist4, dist5])
                 if min_dist_test < min_dist:
                     min_dist = min_dist_test
+                    min_poly_idx = i
             else:
                 self.logger.error("Shape not defined!")
                 raise Exception("Shape not defined!")
 
-        return min_dist
+        return min_dist, min_poly_idx
     
     def _point_in_pentagon(self, point, pentagon):
         # Check if a point is inside a pentagon
@@ -433,30 +447,49 @@ class GroupEdgeMPC(BaseMPC):
                     inside = not inside
         return inside
     
-    def _check_inside_edges(self, target_pt, key_pts, shape):
+    def _check_inside_edges(self, target_pt, key_pts, poly_idx, shape):
         # Check if a point is inside the edges
         # Currently only supports pentagon shape
         num_pts = np.shape(key_pts)[0]
         if not ((num_pts % 5) == 0):
             raise Exception("num_pts not a multiplier of 5!")
-        num_pts = int(num_pts / 5)
-        for i in range(num_pts):
-            left_pt = key_pts[i * 5]
-            center_pt = key_pts[i * 5 + 1]
-            right_pt = key_pts[i * 5 + 2]
-            left_offset_pt = key_pts[i * 5 + 3]
-            right_offset_pt = key_pts[i * 5 + 4]
-            if shape == "line":
-                if self._point_in_pentagon(target_pt, [left_pt, 
-                                                       center_pt, 
-                                                       right_pt, 
-                                                       right_offset_pt, 
-                                                       left_offset_pt]):
-                    return True
-            else:
-                self.logger.error("Shape not defined!")
-                raise Exception("Shape not defined!")
+        
+        # Only need to check the polygon with the closest point
+        left_pt = key_pts[poly_idx * 5]
+        center_pt = key_pts[poly_idx * 5 + 1]
+        right_pt = key_pts[poly_idx * 5 + 2]
+        left_offset_pt = key_pts[poly_idx * 5 + 3]
+        right_offset_pt = key_pts[poly_idx * 5 + 4]
+        if shape == "line":
+            if self._point_in_pentagon(target_pt, [left_pt, 
+                                                   center_pt, 
+                                                   right_pt, 
+                                                   right_offset_pt, 
+                                                   left_offset_pt]):
+                return True
+        else:
+            self.logger.error("Shape not defined!")
+            raise Exception("Shape not defined!")
         return False
+
+        # num_pts = int(num_pts / 5)
+        # for i in range(num_pts):
+        #     left_pt = key_pts[i * 5]
+        #     center_pt = key_pts[i * 5 + 1]
+        #     right_pt = key_pts[i * 5 + 2]
+        #     left_offset_pt = key_pts[i * 5 + 3]
+        #     right_offset_pt = key_pts[i * 5 + 4]
+        #     if shape == "line":
+        #         if self._point_in_pentagon(target_pt, [left_pt, 
+        #                                                center_pt, 
+        #                                                right_pt, 
+        #                                                right_offset_pt, 
+        #                                                left_offset_pt]):
+        #             return True
+        #     else:
+        #         self.logger.error("Shape not defined!")
+        #         raise Exception("Shape not defined!")
+        # return False
     
     def _rollout_dist(self, rollout, edge_pts):
         shape = "line"
@@ -465,9 +498,9 @@ class GroupEdgeMPC(BaseMPC):
         dists = np.ones(time_steps)*(1e+9)
         hit_idx = time_steps
         for i in range(time_steps):
-            if self._check_inside_edges(rollout[i], edge_pts[i], shape):
+            dists[i], poly_idx = self._find_least_dist_edges(rollout[i], edge_pts[i], shape)
+            if self._check_inside_edges(rollout[i], edge_pts[i], poly_idx, shape):
                 hit_idx = min(hit_idx, i)
-            dists[i] = self._find_least_dist_edges(rollout[i], edge_pts[i], shape)
         return dists, hit_idx
     
     def _min_dist_cost_func(self, dists, hit_idx):
