@@ -22,8 +22,8 @@ if __name__ == "__main__":
     if args.rl:
         sys.path.append('crowdattn')
         from sim.crowd_attn_rl import CrowdAttnRL
-        args.output_dir = 'exps/02-25-rl-sgan'
-        args.react = False
+        # args.output_dir = 'exps/test'
+        # args.react = False
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     args.envs = envs_arg
 
     results = []
-    sim = Simulator(args, 'data/ucy_2.json', logger)
+    sim = Simulator(args, 'data/all.json', logger)
     obs = sim.reset()
     dataset_info = obs['dataset_info']
     while not (obs is None):

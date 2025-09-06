@@ -10,7 +10,7 @@ def get_args():
     parser.add_argument(
         "--output-dir", 
         type=str, 
-        default="exps/results",
+        default="exps/test",
         help="Path to save experiment results"
     )
 
@@ -247,8 +247,16 @@ def get_args():
     parser.add_argument(
         "--rl",
         action='store_true',
-        default=False,
+        default=True,
         help="use crowdattn-rl as the agent"
+    )
+
+    # crowdattn RL configuration
+    parser.add_argument(
+        "--rl-predmodel",
+        type=str,
+        default="gst",
+        help="which prediction model to use for crowdattn-rl, sgan or gst"
     )
 
     parser.add_argument(
@@ -324,5 +332,10 @@ def check_args(args, logger):
         if (args.edge) and (args.edge_offset <= 0):
             logger.error("Edge offset must be positive")
             raise Exception("Edge offset must be positive")
+
+        # if args.rl:
+        #     if args.future_steps != 5:
+        #         logger.error("Crowdattn-rl requires 5 future steps")
+        #         raise Exception("Crowdattn-rl requires 5 future steps")
 
     return

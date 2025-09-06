@@ -2,10 +2,12 @@ import numpy as np
 import torch
 import gym
 import os
+import pickle
 from time import time
 
 from crowdattn.rl.networks.model import Policy
 from sgan.scripts.inference import SGANInference
+from crowdattn.gst_updated.scripts.wrapper.crowd_nav_interface_parallel import CrowdNavPredInterfaceMultiEnv
 
 class CrowdAttnRL(object):
     # The baseline model is the crowd attention RL model
@@ -18,13 +20,31 @@ class CrowdAttnRL(object):
         self.predict_steps = args.future_steps
         self.human_num = args.rl_humans
 
+        self.rl_predmodel = args.rl_predmodel
+
         if not args.no_cuda:
             self.device = torch.device('cuda:' + str(args.gpu_id))
         else:
             self.device = torch.device('cpu')
 
-        self.sgan = SGANInference(sgan_model_path, args.gpu_id)
-        self.logger.info('SGAN loaded!')
+        if self.rl_predmodel not in ['sgan', 'gst']:
+            logger.error("Prediction model for crowdattn-rl must be sgan or gst")
+            raise Exception("Prediction model for crowdattn-rl must be sgan or gst")
+        if self.rl_predmodel == 'sgan':
+            self.predictor = SGANInference(sgan_model_path, args.gpu_id)
+            self.logger.info('SGAN loaded!')
+        elif self.rl_predmodel == 'gst':
+            load_path = os.path.join(os.getcwd(), "crowdattn/gst_updated/results/100-gumbel_social_transformer-faster_lstm-lr_0.001-init_temp_0.5-edge_head_0-ebd_64-snl_1-snh_8-seed_1000_rand/sj")
+            if not os.path.isdir(load_path):
+                raise RuntimeError('The result directory was not found.')
+            checkpoint_dir = os.path.join(load_path, 'checkpoint')
+            with open(os.path.join(checkpoint_dir, 'args.pickle'), 'rb') as f:
+                gst_args = pickle.load(f)
+            self.predictor = CrowdNavPredInterfaceMultiEnv(
+                load_path=load_path, 
+                device=self.device, 
+                config=gst_args, 
+                num_env=1)
         
         from importlib import import_module
         model_dir_temp = model_dir
@@ -141,9 +161,19 @@ class CrowdAttnRL(object):
             sorted_idx = np.argsort(dists)
             curr_pos = curr_pos[sorted_idx]
             history_pos = obs['pedestrians_pos_history']
-        
-            pos_predictions = self.sgan.evaluate(history_pos)
-            pos_predictions = pos_predictions[sorted_idx]
+
+            if self.rl_predmodel == 'sgan':
+                pos_predictions = self.predictor.evaluate(history_pos)
+                pos_predictions = pos_predictions[sorted_idx]
+            elif self.rl_predmodel == 'gst':
+                in_traj = torch.tensor(history_pos, dtype=torch.float32, device=self.device).unsqueeze(0)
+                # take last 5 timesteps
+                in_traj = in_traj[:, :, -5:, :]
+                in_mask = torch.ones_like(in_traj[..., 0], dtype=torch.float32, device=self.device).unsqueeze(-1)
+                out_traj, out_mask = self.predictor.forward(input_traj=in_traj, input_binary_mask=in_mask)
+                out_traj = out_traj[:, :, :self.predict_steps, :2].squeeze(0)
+                out_traj = out_traj.cpu().numpy()
+                pos_predictions = out_traj[sorted_idx]
         else:
             has_ped = False
             pos_predictions = []

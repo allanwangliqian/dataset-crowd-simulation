@@ -3,6 +3,7 @@ import os
 
 import json
 import numpy as np
+import pandas as pd
 from sim.environment import Buffer
 from sim.data_loader import DataLoader
 
